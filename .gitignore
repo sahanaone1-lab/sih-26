@@ -1,48 +1,68 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ============================================================================
+# MediKiosk SIH-26 .gitignore
+# Prevents committing sensitive credentials, environment files, build artifacts & dependencies
+# ============================================================================
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# 1. Environment & Sensitive Secrets (NEVER COMMIT CREDENTIALS)
+.env
+.env.*
+*.env
+backend/.env
+backend/.env.*
+!*.env.example
+!backend/.env.example
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# 2. Node.js & Dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/package-lock.json
+/package.json
 
-# Flutter/Dart/Pub related
+# 3. Flutter, Dart & Build Artifacts
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
+**/build/
 /coverage/
 
-# Symbolication related
+# 4. Symbolication & Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# 5. Android & Platform Specific Build Output
 /android/app/debug
 /android/app/profile
 /android/app/release
+/windows/flutter/ephemeral
+/linux/flutter/ephemeral
 
-# Widget Preview related
+# 6. IDEs & Editors
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.history
+.atom/
+
+# 7. OS Metadata & Temporary Files
+.DS_Store
+Thumbs.db
+*.class
+*.log
+*.pyc
+.build/
+.buildlog/
+.svn/
+.swiftpm/
 .widget_preview/
+migrate_working_dir/

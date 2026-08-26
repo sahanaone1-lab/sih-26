@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../app/theme.dart';
 import '../../models/hospital_model.dart';
 import '../../widgets/ayush_widgets.dart';
@@ -6,20 +7,18 @@ import 'ayush_dashboard_screen.dart';
 import 'hospital_registration_screen.dart';
 
 /// VerificationStatusScreen for AYUSH Hospital Portal.
-/// 
+///
 /// Shows hospital verification status (Pending / Verified / Rejected),
 /// application details, submitted date, and status message.
 /// Restricts access to the main dashboard while pending/rejected.
 class VerificationStatusScreen extends StatefulWidget {
   final AyushHospital hospital;
 
-  const VerificationStatusScreen({
-    super.key,
-    required this.hospital,
-  });
+  const VerificationStatusScreen({super.key, required this.hospital});
 
   @override
-  State<VerificationStatusScreen> createState() => _VerificationStatusScreenState();
+  State<VerificationStatusScreen> createState() =>
+      _VerificationStatusScreenState();
 }
 
 class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
@@ -51,7 +50,10 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
             constraints: const BoxConstraints(maxWidth: 620),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 24.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -87,70 +89,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                   ),
                   const SizedBox(height: 10.0),
 
-                  Center(
-                    child: StatusBadge(status: _currentStatus),
-                  ),
-                  const SizedBox(height: 24.0),
-
-                  // Interactive Status Demo Switcher Card for Evaluator Testing
-                  Container(
-                    padding: const EdgeInsets.all(14.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14.0),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.tune_rounded, size: 16.0, color: AppColors.navyPrimary),
-                            SizedBox(width: 6.0),
-                            Flexible(
-                              child: Text(
-                                'DEMO STATUS SWITCHER (Simulate Verification Stage)',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: AppColors.navyPrimary,
-                                  fontSize: 11.0,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10.0),
-                        Wrap(
-                          spacing: 8.0,
-                          runSpacing: 8.0,
-                          alignment: WrapAlignment.center,
-                          children: VerificationStatus.values.map((st) {
-                            final isSelected = st == _currentStatus;
-                            return ChoiceChip(
-                              label: Text(st.displayName),
-                              selected: isSelected,
-                              selectedColor: st.color,
-                              labelStyle: TextStyle(
-                                color: isSelected ? AppColors.background : AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12.0,
-                              ),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setState(() {
-                                    _currentStatus = st;
-                                    widget.hospital.verificationStatus = st;
-                                  });
-                                }
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Center(child: StatusBadge(status: _currentStatus)),
                   const SizedBox(height: 24.0),
 
                   // Application Details Card
@@ -180,19 +119,46 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                           ),
                         ),
                         const SizedBox(height: 14.0),
-                        const Divider(color: AppColors.surfaceBorder, height: 1.0),
+                        const Divider(
+                          color: AppColors.surfaceBorder,
+                          height: 1.0,
+                        ),
                         const SizedBox(height: 14.0),
-                        _buildDetailRow(Icons.confirmation_number_outlined, 'Application ID', widget.hospital.applicationId),
+                        _buildDetailRow(
+                          Icons.confirmation_number_outlined,
+                          'Application ID',
+                          widget.hospital.applicationId,
+                        ),
                         const SizedBox(height: 12.0),
-                        _buildDetailRow(Icons.verified_outlined, 'AYUSH / FIR ID', widget.hospital.ayushId),
+                        _buildDetailRow(
+                          Icons.verified_outlined,
+                          'AYUSH / FIR ID',
+                          widget.hospital.ayushId,
+                        ),
                         const SizedBox(height: 12.0),
-                        _buildDetailRow(Icons.badge_outlined, 'Registration No.', widget.hospital.regNumber),
+                        _buildDetailRow(
+                          Icons.badge_outlined,
+                          'Registration No.',
+                          widget.hospital.regNumber,
+                        ),
                         const SizedBox(height: 12.0),
-                        _buildDetailRow(Icons.calendar_today_outlined, 'Submitted Date', widget.hospital.submittedDate),
+                        _buildDetailRow(
+                          Icons.calendar_today_outlined,
+                          'Submitted Date',
+                          widget.hospital.submittedDate,
+                        ),
                         const SizedBox(height: 12.0),
-                        _buildDetailRow(Icons.domain_rounded, 'Facility Type', widget.hospital.hospitalType),
+                        _buildDetailRow(
+                          Icons.domain_rounded,
+                          'Facility Type',
+                          widget.hospital.hospitalType,
+                        ),
                         const SizedBox(height: 12.0),
-                        _buildDetailRow(Icons.person_outline_rounded, 'Authorized Person', widget.hospital.authorizedPersonName),
+                        _buildDetailRow(
+                          Icons.person_outline_rounded,
+                          'Authorized Person',
+                          widget.hospital.authorizedPersonName,
+                        ),
                       ],
                     ),
                   ),
@@ -204,14 +170,20 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                     decoration: BoxDecoration(
                       color: _currentStatus.backgroundColor,
                       borderRadius: BorderRadius.circular(16.0),
-                      border: Border.all(color: _currentStatus.color.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: _currentStatus.color.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(_currentStatus.icon, color: _currentStatus.color, size: 22.0),
+                            Icon(
+                              _currentStatus.icon,
+                              color: _currentStatus.color,
+                              size: 22.0,
+                            ),
                             const SizedBox(width: 10.0),
                             Flexible(
                               child: Text(
@@ -248,7 +220,9 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                         onPressed: () {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                              builder: (context) => AyushDashboardScreen(hospital: widget.hospital),
+                              builder: (context) => AyushDashboardScreen(
+                                hospital: widget.hospital,
+                              ),
                             ),
                             (route) => false,
                           );
@@ -256,7 +230,10 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                         icon: const Icon(Icons.dashboard_rounded, size: 22.0),
                         label: const Text(
                           'Go to AYUSH Hospital Dashboard',
-                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.greenSuccess,
@@ -271,7 +248,10 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                   ] else ...[
                     // PENDING or REJECTED: Main Dashboard access is restricted!
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 14.0,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12.0),
@@ -279,7 +259,11 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                       ),
                       child: Row(
                         children: const [
-                          Icon(Icons.lock_rounded, color: AppColors.textSecondary, size: 20.0),
+                          Icon(
+                            Icons.lock_rounded,
+                            color: AppColors.textSecondary,
+                            size: 20.0,
+                          ),
                           SizedBox(width: 12.0),
                           Expanded(
                             child: Text(
@@ -302,7 +286,9 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Re-checked status: Verification process is active with AYUSH regulatory authority.'),
+                                  content: Text(
+                                    'Re-checked status: Verification process is active with AYUSH regulatory authority.',
+                                  ),
                                   backgroundColor: AppColors.navyPrimary,
                                 ),
                               );
@@ -311,9 +297,15 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                             label: const Text('Refresh Status'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.navyPrimary,
-                              side: const BorderSide(color: AppColors.navyPrimary),
-                              padding: const EdgeInsets.symmetric(vertical: 14.0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                              side: const BorderSide(
+                                color: AppColors.navyPrimary,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14.0,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
                             ),
                           ),
                         ),
@@ -323,16 +315,26 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (context) => const HospitalRegistrationScreen()),
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const HospitalRegistrationScreen(),
+                                  ),
                                 );
                               },
-                              icon: const Icon(Icons.edit_note_rounded, size: 18.0),
+                              icon: const Icon(
+                                Icons.edit_note_rounded,
+                                size: 18.0,
+                              ),
                               label: const Text('Re-register'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.saffronPrimary,
                                 foregroundColor: AppColors.background,
-                                padding: const EdgeInsets.symmetric(vertical: 14.0),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
                               ),
                             ),
                           ),
@@ -346,7 +348,10 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => const HospitalRegistrationScreen()),
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const HospitalRegistrationScreen(),
+                        ),
                         (route) => false,
                       );
                     },
@@ -372,6 +377,8 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
     switch (_currentStatus) {
       case VerificationStatus.pending:
         return 'Verification Pending';
+      case VerificationStatus.under_review:
+        return 'Application Under Review';
       case VerificationStatus.verified:
         return 'Account Verified & Active';
       case VerificationStatus.rejected:
@@ -383,6 +390,8 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
     switch (_currentStatus) {
       case VerificationStatus.pending:
         return 'Your hospital details and uploaded AYUSH certificates have been received. State regulatory verification typically takes 24–48 hours. Once verified, full dashboard access will be unlocked.';
+      case VerificationStatus.under_review:
+        return 'A verification officer is currently reviewing your uploaded AYUSH certificates and accreditation credentials. You will be notified once a decision is made.';
       case VerificationStatus.verified:
         return 'Congratulations! Your AYUSH hospital accreditation and credentials have been verified by the regulatory authority. You can now access your MediKiosk intake dashboard.';
       case VerificationStatus.rejected:

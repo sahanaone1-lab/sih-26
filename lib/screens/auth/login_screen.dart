@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+
 import '../../app/theme.dart';
 import '../../models/hospital_model.dart';
 import '../../widgets/ayush_widgets.dart';
+import '../admin/admin_dashboard_screen.dart';
 import '../hospital/ayush_dashboard_screen.dart';
 import '../hospital/hospital_registration_screen.dart';
 import '../hospital/verification_status_screen.dart';
 
 /// Dedicated AYUSH Hospital Login Screen.
-/// 
+///
 /// Allows registered hospitals to authenticate using their Registration ID / Email and Password.
 /// Validates status: routes verified accounts to AyushDashboardScreen and pending accounts to VerificationStatusScreen.
 class LoginScreen extends StatefulWidget {
@@ -34,7 +36,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _identifierController = TextEditingController(
-      text: widget.initialRegistrationId ?? widget.registeredHospital?.applicationId ?? '',
+      text:
+          widget.initialRegistrationId ??
+          widget.registeredHospital?.applicationId ??
+          '',
     );
   }
 
@@ -47,9 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin({bool forceVerified = true}) {
     if (_formKey.currentState?.validate() ?? false) {
-      final hospital = widget.registeredHospital ?? AyushHospital.mock(
-        status: forceVerified ? VerificationStatus.verified : VerificationStatus.pending,
-      );
+      final hospital =
+          widget.registeredHospital ??
+          AyushHospital.mock(
+            status: forceVerified
+                ? VerificationStatus.verified
+                : VerificationStatus.pending,
+          );
 
       if (hospital.verificationStatus == VerificationStatus.verified) {
         Navigator.of(context).pushReplacement(
@@ -84,6 +93,55 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         centerTitle: true,
         title: const AyushHeaderLogo(iconSize: 22.0, fontSize: 18.0),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 6.0),
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboardScreen(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.navyPrimary,
+                backgroundColor: AppColors.surface,
+                side: const BorderSide(color: AppColors.surfaceBorder),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+              icon: const Icon(
+                Icons.admin_panel_settings_rounded,
+                size: 16.0,
+                color: AppColors.saffronDark,
+              ),
+              label: const Text(
+                'Admin Portal',
+                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: TextButton.icon(
+              onPressed: _fillMockLogin,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.saffronDark,
+                backgroundColor: AppColors.saffronLight,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+              ),
+              icon: const Icon(Icons.auto_fix_high_rounded, size: 16.0),
+              label: const Text(
+                'Auto Fill',
+                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -91,7 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
             constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 28.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -143,7 +204,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         labelText: 'Hospital Registration ID / Email',
-                        hintText: 'Enter Registration ID (AYUSH-HOSP...) or Email',
+                        hintText:
+                            'Enter Registration ID (AYUSH-HOSP...) or Email',
                         prefixIcon: const Icon(
                           Icons.badge_outlined,
                           color: AppColors.textSecondary,
@@ -152,15 +214,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         fillColor: AppColors.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.navyPrimary, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.navyPrimary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                       validator: (value) {
@@ -185,7 +254,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             color: AppColors.textSecondary,
                           ),
                           onPressed: () {
@@ -198,15 +269,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         fillColor: AppColors.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                          borderSide: const BorderSide(
+                            color: AppColors.surfaceBorder,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
-                          borderSide: const BorderSide(color: AppColors.navyPrimary, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.navyPrimary,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                       validator: (value) {
@@ -224,7 +302,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Password reset instructions sent to registered official email.'),
+                              content: Text(
+                                'Password reset instructions sent to registered official email.',
+                              ),
                               backgroundColor: AppColors.navyPrimary,
                               duration: Duration(seconds: 3),
                             ),
@@ -274,8 +354,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           child: TextButton.icon(
                             onPressed: _fillMockLogin,
-                            icon: const Icon(Icons.auto_fix_high_rounded, size: 14.0),
-                            label: const Text('Auto-fill Demo Credentials', style: TextStyle(fontSize: 11.0)),
+                            icon: const Icon(
+                              Icons.auto_fix_high_rounded,
+                              size: 14.0,
+                            ),
+                            label: const Text(
+                              'Auto-fill Demo Credentials',
+                              style: TextStyle(fontSize: 11.0),
+                            ),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.navyPrimary,
                             ),
@@ -284,8 +370,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           child: TextButton.icon(
                             onPressed: () => _handleLogin(forceVerified: false),
-                            icon: const Icon(Icons.hourglass_top_rounded, size: 14.0),
-                            label: const Text('Test Pending Status', style: TextStyle(fontSize: 11.0)),
+                            icon: const Icon(
+                              Icons.hourglass_top_rounded,
+                              size: 14.0,
+                            ),
+                            label: const Text(
+                              'Test Pending Status',
+                              style: TextStyle(fontSize: 11.0),
+                            ),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.saffronDark,
                             ),
@@ -298,7 +390,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Divider: NEW HOSPITAL REGISTRATION
                     Row(
                       children: const [
-                        Expanded(child: Divider(color: AppColors.surfaceBorder)),
+                        Expanded(
+                          child: Divider(color: AppColors.surfaceBorder),
+                        ),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12.0),
                           child: Text(
@@ -311,7 +405,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: AppColors.surfaceBorder)),
+                        Expanded(
+                          child: Divider(color: AppColors.surfaceBorder),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20.0),
@@ -323,11 +419,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (context) => const HospitalRegistrationScreen(),
+                              builder: (context) =>
+                                  const HospitalRegistrationScreen(),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.app_registration_rounded, size: 20.0),
+                        icon: const Icon(
+                          Icons.app_registration_rounded,
+                          size: 20.0,
+                        ),
                         label: const Text(
                           'Register Hospital',
                           style: TextStyle(
@@ -337,7 +437,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.navyPrimary,
-                          side: const BorderSide(color: AppColors.navyPrimary, width: 1.5),
+                          side: const BorderSide(
+                            color: AppColors.navyPrimary,
+                            width: 1.5,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),
                           ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 /// Enum representing the verification status of an AYUSH hospital.
 enum VerificationStatus {
   pending,
+  // ignore: constant_identifier_names
+  under_review,
   verified,
   rejected;
 
@@ -10,6 +12,8 @@ enum VerificationStatus {
     switch (this) {
       case VerificationStatus.pending:
         return 'Pending Verification';
+      case VerificationStatus.under_review:
+        return 'Under Review';
       case VerificationStatus.verified:
         return 'Verified';
       case VerificationStatus.rejected:
@@ -21,6 +25,8 @@ enum VerificationStatus {
     switch (this) {
       case VerificationStatus.pending:
         return const Color(0xFFE0530B); // Saffron Dark
+      case VerificationStatus.under_review:
+        return const Color(0xFF1E3A8A); // Navy Accent / Blue
       case VerificationStatus.verified:
         return const Color(0xFF046A38); // India Green
       case VerificationStatus.rejected:
@@ -32,6 +38,8 @@ enum VerificationStatus {
     switch (this) {
       case VerificationStatus.pending:
         return const Color(0xFFFFF2EC);
+      case VerificationStatus.under_review:
+        return const Color(0xFFEFF6FF);
       case VerificationStatus.verified:
         return const Color(0xFFEDF7F2);
       case VerificationStatus.rejected:
@@ -43,6 +51,8 @@ enum VerificationStatus {
     switch (this) {
       case VerificationStatus.pending:
         return Icons.hourglass_top_rounded;
+      case VerificationStatus.under_review:
+        return Icons.policy_rounded;
       case VerificationStatus.verified:
         return Icons.verified_user_rounded;
       case VerificationStatus.rejected:

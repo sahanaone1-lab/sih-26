@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
+
 import '../app/theme.dart';
 import '../models/hospital_model.dart';
 
 /// Top header logo widget featuring official AYUSH & MediKiosk emblem styling.
 class AyushHeaderLogo extends StatelessWidget {
   final double iconSize;
-  final double fontSize;
+  final double? fontSize;
   final bool showSubtitle;
+  final String titlePrefix;
+  final String titleSuffix;
 
   const AyushHeaderLogo({
     super.key,
     this.iconSize = 24.0,
-    this.fontSize = 20.0,
+    this.fontSize,
     this.showSubtitle = false,
+    this.titlePrefix = 'AYUSH ',
+    this.titleSuffix = 'HOSPITAL PORTAL',
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallMobile = screenWidth < 400;
+    final effectiveFontSize = fontSize ?? (isSmallMobile ? 15.0 : 18.0);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -27,43 +38,41 @@ class AyushHeaderLogo extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6.0),
               decoration: BoxDecoration(
-                color: AppColors.saffronLight,
+                color: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.saffronPrimary, width: 1.5),
               ),
               child: Icon(
                 Icons.spa_rounded,
-                color: AppColors.saffronDark,
-                size: iconSize,
+                color: AppColors.saffronPrimary,
+                size: isSmallMobile ? (iconSize * 0.85) : iconSize,
               ),
             ),
             const SizedBox(width: 8.0),
             Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'AYUSH ',
-                        style: TextStyle(
-                          color: AppColors.saffronDark,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
+              child: RichText(
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: titlePrefix,
+                      style: TextStyle(
+                        color: AppColors.saffronDark,
+                        fontSize: effectiveFontSize,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
                       ),
-                      TextSpan(
-                        text: 'HOSPITAL PORTAL',
-                        style: TextStyle(
-                          color: AppColors.navyPrimary,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.0,
-                        ),
+                    ),
+                    TextSpan(
+                      text: titleSuffix,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                        fontSize: effectiveFontSize,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -71,11 +80,12 @@ class AyushHeaderLogo extends StatelessWidget {
         ),
         if (showSubtitle) ...[
           const SizedBox(height: 4.0),
-          const Text(
+          Text(
             'Ministry of Ayush • MediKiosk Public Health Infrastructure',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11.0,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: isSmallMobile ? 10.0 : 11.0,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.3,
             ),
@@ -90,10 +100,7 @@ class AyushHeaderLogo extends StatelessWidget {
 class StatusBadge extends StatelessWidget {
   final VerificationStatus status;
 
-  const StatusBadge({
-    super.key,
-    required this.status,
-  });
+  const StatusBadge({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -110,11 +117,7 @@ class StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            status.icon,
-            size: 14.0,
-            color: status.color,
-          ),
+          Icon(status.icon, size: 14.0, color: status.color),
           const SizedBox(width: 6.0),
           Text(
             status.displayName,
@@ -186,7 +189,10 @@ class StatCard extends StatelessWidget {
                 if (subtitle != null)
                   Flexible(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6.0,
+                        vertical: 3.0,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.greenLight,
                         borderRadius: BorderRadius.circular(10.0),
@@ -301,7 +307,10 @@ class DashboardActionCard extends StatelessWidget {
                         if (badgeText != null) ...[
                           const SizedBox(width: 8.0),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 2.0,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.saffronLight,
                               borderRadius: BorderRadius.circular(10.0),
@@ -372,15 +381,21 @@ class UploadCard extends StatelessWidget {
           color: isUploaded ? AppColors.greenLight : AppColors.surface,
           borderRadius: BorderRadius.circular(12.0),
           border: Border.all(
-            color: isUploaded ? AppColors.greenSuccess : AppColors.surfaceBorder,
+            color: isUploaded
+                ? AppColors.greenSuccess
+                : AppColors.surfaceBorder,
             width: isUploaded ? 1.5 : 1.0,
           ),
         ),
         child: Column(
           children: [
             Icon(
-              isUploaded ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-              color: isUploaded ? AppColors.greenSuccess : AppColors.saffronPrimary,
+              isUploaded
+                  ? Icons.check_circle_rounded
+                  : Icons.cloud_upload_outlined,
+              color: isUploaded
+                  ? AppColors.greenSuccess
+                  : AppColors.saffronPrimary,
               size: 28.0,
             ),
             const SizedBox(height: 8.0),
@@ -395,10 +410,14 @@ class UploadCard extends StatelessWidget {
             ),
             const SizedBox(height: 4.0),
             Text(
-              isUploaded ? fileName! : (subtitle ?? 'Click to select document (PDF/JPG)'),
+              isUploaded
+                  ? fileName!
+                  : (subtitle ?? 'Click to select document (PDF/JPG)'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isUploaded ? AppColors.greenSuccess : AppColors.textSecondary,
+                color: isUploaded
+                    ? AppColors.greenSuccess
+                    : AppColors.textSecondary,
                 fontSize: 11.0,
                 fontWeight: isUploaded ? FontWeight.bold : FontWeight.normal,
               ),

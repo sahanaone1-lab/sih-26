@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'app/theme.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/admin_hospital_list_screen.dart';
+import 'screens/admin/admin_login_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/hospital/hospital_registration_screen.dart';
+import 'screens/patient/patient_intake_screen.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() {
@@ -10,13 +18,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MediKiosk',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(),
+    return AnimatedBuilder(
+      animation: ThemeController.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'MediKiosk - AYUSH Digital Health Platform',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeController.instance.themeMode,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const HomeScreen(),
+            '/home': (context) => const HomeScreen(),
+            '/splash': (context) => const SplashScreen(),
+            '/register': (context) => const HospitalRegistrationScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/admin/login': (context) => const AdminLoginScreen(),
+            '/admin': (context) => const AdminDashboardScreen(),
+            '/admin/hospitals': (context) => const AdminHospitalListScreen(),
+            '/patient': (context) => const PatientIntakeScreen(),
+          },
+        );
+      },
     );
   }
 }

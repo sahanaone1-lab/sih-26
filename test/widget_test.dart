@@ -2,22 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medical_app/main.dart';
 
 void main() {
-  testWidgets('App renders SplashScreen and navigates automatically to HospitalRegistrationScreen',
+  testWidgets('App renders HomeScreen with Role Selection and Portals',
       (WidgetTester tester) async {
     // Build app and trigger initial frame
     await tester.pumpWidget(const MyApp());
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
 
-    // Verify SplashScreen is displayed with MediKiosk branding
-    expect(find.text('MediKiosk'), findsOneWidget);
-    expect(find.text('Hospital Management & Public Health Kiosk'), findsOneWidget);
-
-    // Fast-forward past 2.5 second delay and page transition animation
-    await tester.pump(const Duration(milliseconds: 2000));
-    await tester.pump(const Duration(milliseconds: 500));
-
-    // Verify HospitalRegistrationScreen is now displayed
-    expect(find.text('AYUSH Hospital Portal Registration'), findsOneWidget);
-    expect(find.text('Register Hospital'), findsOneWidget);
+    // Verify HomeScreen is displayed with MediKiosk branding and Role Selection
+    expect(find.text('Smart Public Health & AYUSH Hospital Ecosystem'), findsOneWidget);
+    expect(find.text('Choose Your Portal'), findsOneWidget);
+    expect(find.text('Patient & Kiosk Intake'), findsOneWidget);
+    expect(find.text('Doctor & Hospital Portal'), findsOneWidget);
+    expect(find.text('Admin Verification Portal'), findsOneWidget);
   });
 }
