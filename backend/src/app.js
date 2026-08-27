@@ -13,7 +13,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 2. Enable Cross-Origin Resource Sharing (CORS)
-app.use(cors());
+app.use(
+  cors({
+    origin: true, // Allow all localhost origins dynamically from Flutter Web
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-id', 'Accept'],
+  })
+);
+app.options('*', cors());
 
 // 3. Application Routes
 app.use('/health', healthRoutes);

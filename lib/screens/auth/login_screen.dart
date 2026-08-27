@@ -51,41 +51,47 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin({bool forceVerified = false}) {
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isLoading = true);
       final inputQuery = _identifierController.text.trim();
-      final liveHospital = AdminHospitalService().findHospitalForLogin(inputQuery);
+      final password = _passwordController.text;
 
-      final hospital = liveHospital ??
-          widget.registeredHospital ??
-          AyushHospital.mock(
-            status: forceVerified
-                ? VerificationStatus.verified
-                : VerificationStatus.pending,
+      try {
+        final hospital = await AdminHospitalService().loginHospital(inputQuery, password);
+        
+        if (!mounted) return;
+
+        if (hospital.verificationStatus == VerificationStatus.verified) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => AyushDashboardScreen(hospital: hospital),
+            ),
           );
-
-      if (hospital.verificationStatus == VerificationStatus.verified) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => AyushDashboardScreen(hospital: hospital),
-          ),
-        );
-      } else {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => VerificationStatusScreen(hospital: hospital),
-          ),
-        );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => VerificationStatusScreen(hospital: hospital),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
-  }
-
-  /// Auto fills credentials for quick evaluator login testing.
-  void _fillMockLogin() {
-    setState(() {
-      _identifierController.text = 'contact@nia.ayush.gov.in';
-      _passwordController.text = 'password123';
-    });
   }
 
   @override
@@ -123,24 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               label: const Text(
                 'Admin Portal',
-                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: TextButton.icon(
-              onPressed: _fillMockLogin,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.saffronDark,
-                backgroundColor: AppColors.saffronLight,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
-              ),
-              icon: const Icon(Icons.auto_fix_high_rounded, size: 16.0),
-              label: const Text(
-                'Auto Fill',
                 style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
               ),
             ),
@@ -330,11 +318,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       height: 52.0,
                       child: ElevatedButton.icon(
-                        onPressed: () => _handleLogin(forceVerified: false),
-                        icon: const Icon(Icons.login_rounded, size: 20.0),
-                        label: const Text(
-                          'Hospital Login',
-                          style: TextStyle(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        icon: _isLoading 
+                            ? const SizedBox(
+                                width: 20.0,
+                                height: 20.0,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.0,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.login_rounded, size: 20.0),
+                        label: Text(
+                          _isLoading ? 'Authenticating...' : 'Hospital Login',
+                          style: const TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
@@ -349,45 +346,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12.0),
-
-                    // Demo Helper Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton.icon(
-                            onPressed: _fillMockLogin,
-                            icon: const Icon(
-                              Icons.auto_fix_high_rounded,
-                              size: 14.0,
-                            ),
-                            label: const Text(
-                              'Auto-fill Demo Credentials',
-                              style: TextStyle(fontSize: 11.0),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.navyPrimary,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: TextButton.icon(
-                            onPressed: () => _handleLogin(forceVerified: false),
-                            icon: const Icon(
-                              Icons.hourglass_top_rounded,
-                              size: 14.0,
-                            ),
-                            label: const Text(
-                              'Test Pending Status',
-                              style: TextStyle(fontSize: 11.0),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.saffronDark,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                     const SizedBox(height: 24.0),
 

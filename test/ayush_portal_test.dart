@@ -10,6 +10,10 @@ import 'package:medical_app/screens/hospital/verification_status_screen.dart';
 import 'package:medical_app/services/admin_hospital_service.dart';
 
 void main() {
+  setUp(() {
+    AdminHospitalService().useMockData = true;
+  });
+
   group('AYUSH Hospital Portal Tests', () {
     testWidgets('1. HospitalRegistrationScreen renders all required fields and register button',
         (WidgetTester tester) async {

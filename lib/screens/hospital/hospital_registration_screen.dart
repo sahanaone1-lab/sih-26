@@ -47,6 +47,7 @@ class _HospitalRegistrationScreenState
   String? _regCertFileName;
   String? _authPersonIdFileName;
   bool _showDocUploadError = false;
+  bool _isLoading = false;
 
   final List<String> _hospitalTypes = [
     'Government AYUSH Institute',
@@ -92,47 +93,70 @@ class _HospitalRegistrationScreenState
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() {
       _showDocUploadError =
           _regCertFileName == null || _authPersonIdFileName == null;
     });
 
     if ((_formKey.currentState?.validate() ?? false) && !_showDocUploadError) {
-      final newHospital = AyushHospital(
-        applicationId:
-            'AYUSH-HOSP-${DateTime.now().year}-${(10000 + DateTime.now().millisecondsSinceEpoch % 90000)}',
-        hospitalName: _hospitalNameController.text.trim(),
-        regNumber: _regNumberController.text.trim(),
-        ayushId: _ayushIdController.text.trim(),
-        address: _addressController.text.trim(),
-        state: _selectedState ?? 'Rajasthan',
-        district: _districtController.text.trim(),
-        hospitalType: _selectedHospitalType ?? 'Government AYUSH Institute',
-        authorizedPersonName: _authorizedPersonController.text.trim(),
-        authorizedPersonDesignation:
-            _authorizedDesignationController.text.trim().isEmpty
-            ? 'Authorized Representative'
-            : _authorizedDesignationController.text.trim(),
-        officialEmail: _emailController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        password: _passwordController.text,
-        regCertFileName: _regCertFileName,
-        authorizedPersonIdFileName: _authPersonIdFileName,
-        verificationStatus: VerificationStatus.pending,
-        submittedDate: '${DateTime.now().day} August ${DateTime.now().year}',
-      );
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Save hospital registration data to shared AdminHospitalService (singleton source of truth)
-      AdminHospitalService().registerHospital(newHospital);
+      try {
+        final newHospital = AyushHospital(
+          applicationId:
+              'AYUSH-HOSP-${DateTime.now().year}-${(10000 + DateTime.now().millisecondsSinceEpoch % 90000)}',
+          hospitalName: _hospitalNameController.text.trim(),
+          regNumber: _regNumberController.text.trim(),
+          ayushId: _ayushIdController.text.trim(),
+          address: _addressController.text.trim(),
+          state: _selectedState ?? 'Rajasthan',
+          district: _districtController.text.trim(),
+          hospitalType: _selectedHospitalType ?? 'Government AYUSH Institute',
+          authorizedPersonName: _authorizedPersonController.text.trim(),
+          authorizedPersonDesignation:
+              _authorizedDesignationController.text.trim().isEmpty
+              ? 'Authorized Representative'
+              : _authorizedDesignationController.text.trim(),
+          officialEmail: _emailController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+          password: _passwordController.text,
+          regCertFileName: _regCertFileName,
+          authorizedPersonIdFileName: _authPersonIdFileName,
+          verificationStatus: VerificationStatus.pending,
+          submittedDate: '${DateTime.now().day} August ${DateTime.now().year}',
+        );
 
-      // Navigate to RegistrationSubmittedScreen (Pending Verification page) using replacement navigation
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) =>
-              RegistrationSubmittedScreen(hospital: newHospital),
-        ),
-      );
+        // Save hospital registration data to shared AdminHospitalService (singleton source of truth)
+        await AdminHospitalService().registerHospital(newHospital);
+
+        if (mounted) {
+          // Navigate to RegistrationSubmittedScreen (Pending Verification page) using replacement navigation
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) =>
+                  RegistrationSubmittedScreen(hospital: newHospital),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Registration failed: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     } else if (_showDocUploadError) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -143,28 +167,6 @@ class _HospitalRegistrationScreenState
         ),
       );
     }
-  }
-
-  /// Pre-fills demo details for fast evaluator testing
-  void _fillMockData() {
-    setState(() {
-      _hospitalNameController.text = 'National Institute of Ayurveda Hospital';
-      _regNumberController.text = 'AYUSH-RJ-2024-0091';
-      _ayushIdController.text = 'AYUSH/FIR/2026/0482';
-      _addressController.text = 'Jorawar Singh Gate, Amer Road';
-      _districtController.text = 'Jaipur';
-      _selectedState = 'Rajasthan';
-      _selectedHospitalType = 'Government AYUSH Institute';
-      _authorizedPersonController.text = 'Dr. Rajeshwar Sharma';
-      _authorizedDesignationController.text = 'Chief Medical Superintendent';
-      _emailController.text = 'contact@nia.ayush.gov.in';
-      _phoneController.text = '9829012345';
-      _passwordController.text = 'password123';
-      _confirmPasswordController.text = 'password123';
-      _regCertFileName = 'ayush_reg_certificate_2026.pdf';
-      _authPersonIdFileName = 'authorized_person_id_card.pdf';
-      _showDocUploadError = false;
-    });
   }
 
   @override
@@ -202,24 +204,6 @@ class _HospitalRegistrationScreenState
               ),
               label: const Text(
                 'Admin Portal',
-                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: TextButton.icon(
-              onPressed: _fillMockData,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.saffronDark,
-                backgroundColor: AppColors.saffronLight,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
-              ),
-              icon: const Icon(Icons.auto_fix_high_rounded, size: 16.0),
-              label: const Text(
-                'Auto Fill',
                 style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
               ),
             ),
@@ -627,14 +611,23 @@ class _HospitalRegistrationScreenState
                         SizedBox(
                           height: 54.0,
                           child: ElevatedButton.icon(
-                            onPressed: _submitForm,
-                            icon: const Icon(
-                              Icons.how_to_reg_rounded,
-                              size: 22.0,
-                            ),
-                            label: const Text(
-                              'Register Hospital',
-                              style: TextStyle(
+                            onPressed: _isLoading ? null : _submitForm,
+                            icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 22.0,
+                                    height: 22.0,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.0,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.how_to_reg_rounded,
+                                    size: 22.0,
+                                  ),
+                            label: Text(
+                              _isLoading ? 'Registering...' : 'Register Hospital',
+                              style: const TextStyle(
                                 fontSize: 17.0,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,

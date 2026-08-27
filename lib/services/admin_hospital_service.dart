@@ -1,15 +1,38 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import '../models/admin_hospital_model.dart';
 import '../models/hospital_model.dart';
 
-/// Service abstraction for Admin Hospital Management.
-/// Supports in-memory mock repository with instant mutations and is ready for Express API integration.
+/// Custom API Exception for user-friendly error propagation
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  ApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() => message;
+}
+
+/// AdminHospitalService communicates with the Express Backend API.
+/// Provides verification management, search, status filtering, and audit history.
 class AdminHospitalService {
   static final AdminHospitalService _instance = AdminHospitalService._internal();
-  factory AdminHospitalService() => _instance;
+  factory AdminHospitalService({http.Client? client, bool? useMockData}) {
+    if (client != null) _instance._client = client;
+    if (useMockData != null) _instance.useMockData = useMockData;
+    return _instance;
+  }
   AdminHospitalService._internal();
 
-  final List<AdminHospitalDetail> _hospitals = [
+  http.Client _client = http.Client();
+  bool useMockData = false;
+
+  // In-memory fallback mock dataset for offline test fixtures
+  final List<AdminHospitalDetail> _mockHospitals = [
     AdminHospitalDetail(
       id: '0aae24e7-b1cb-400c-8a3b-a8ec361a1ea8',
       applicationId: 'AYUSH-HOSP-2026-63301',
@@ -86,7 +109,7 @@ class AdminHospitalService {
       officialPhone: '+91 94441 23456',
       registrationNumber: 'AYUSH-TN-2025-0142',
       ayushId: 'AYUSH/SID/2026/0991',
-      hfrId: null, // OPTIONAL test case (Not Provided)
+      hfrId: null,
       verificationStatus: VerificationStatus.under_review,
       createdAt: '25 Aug 2026, 11:15 AM',
       authorizedOfficials: [
@@ -98,16 +121,6 @@ class AdminHospitalService {
           officialEmail: 'meenakshi@siddhahospital.tn.gov.in',
           officialPhone: '+91 94441 23456',
           isPrimary: true,
-        ),
-      ],
-      documents: [
-        HospitalDocument(
-          id: 'doc-3',
-          hospitalId: '2ab59ab8-e20b-4070-bd47-f86ceadeb5a3',
-          documentType: 'registration_certificate',
-          storagePath: 'certificates/tn_siddha.pdf',
-          originalFilename: 'tamilnadu_siddha_license.pdf',
-          uploadedAt: '25 Aug 2026',
         ),
       ],
       verificationHistory: [
@@ -125,73 +138,73 @@ class AdminHospitalService {
           previousStatus: 'pending',
           newStatus: 'under_review',
           action: 'moved_to_under_review',
-          notes: 'Application picked up by Verification Officer',
-          createdAt: '26 Aug 2026, 10:00 AM',
+          notes: 'Assigned to Verification Officer for document compliance check',
+          createdAt: '25 Aug 2026, 02:40 PM',
         ),
       ],
     ),
     AdminHospitalDetail(
-      id: '3cde56f1-c301-4982-a721-998811223344',
-      applicationId: 'AYUSH-HOSP-2026-44102',
-      facilityName: 'All India Institute of Ayurveda',
-      facilityType: 'Government AYUSH Institute',
-      ayushSystem: 'Ayurveda',
-      state: 'Delhi',
-      district: 'South Delhi',
-      address: 'Mathura Road, Gautampuri, Sarita Vihar',
-      pinCode: '110076',
-      officialEmail: 'director@aiia.gov.in',
-      officialPhone: '+91 11 2695 0401',
-      registrationNumber: 'AYUSH-DL-2023-0001',
-      ayushId: 'AYUSH/NAT/2026/0001',
-      hfrId: 'HFR-IN-DL-000192',
+      id: '3bcc89c1-c301-4182-a721-e75bfbeec6b4',
+      applicationId: 'AYUSH-HOSP-2026-90114',
+      facilityName: 'Central Research Institute of Unani Medicine',
+      facilityType: 'Research Institute & Hospital',
+      ayushSystem: 'Unani',
+      state: 'Telangana',
+      district: 'Hyderabad',
+      address: 'Opp. ESI Hospital, AG Colony Road, Erragadda',
+      pinCode: '500038',
+      officialEmail: 'crium.hyderabad@ayush.gov.in',
+      officialPhone: '+91 40 2381 1234',
+      registrationNumber: 'AYUSH-TG-2023-0056',
+      ayushId: 'AYUSH/UNI/2026/0319',
+      hfrId: 'HFR-IN-TG-005619',
       verificationStatus: VerificationStatus.verified,
-      verifiedAt: '20 Aug 2026, 04:00 PM',
-      createdAt: '18 Aug 2026, 09:30 AM',
+      verifiedAt: '24 Aug 2026, 04:10 PM',
+      createdAt: '20 Aug 2026, 09:30 AM',
       authorizedOfficials: [
         HospitalOfficial(
           id: 'off-3',
-          hospitalId: '3cde56f1-c301-4982-a721-998811223344',
-          fullName: 'Prof. (Dr.) Tanuja Nesari',
-          designation: 'Director & CMS',
-          officialEmail: 'director@aiia.gov.in',
-          officialPhone: '+91 11 2695 0401',
+          hospitalId: '3bcc89c1-c301-4182-a721-e75bfbeec6b4',
+          fullName: 'Prof. Mohammad Tariq',
+          designation: 'Director In-charge',
+          officialEmail: 'director.crium@ayush.gov.in',
+          officialPhone: '+91 40 2381 1234',
           isPrimary: true,
         ),
       ],
       verificationHistory: [
         VerificationHistoryItem(
           id: 'hist-4',
-          hospitalId: '3cde56f1-c301-4982-a721-998811223344',
+          hospitalId: '3bcc89c1-c301-4182-a721-e75bfbeec6b4',
           previousStatus: null,
           newStatus: 'pending',
           action: 'registration_submitted',
-          createdAt: '18 Aug 2026, 09:30 AM',
+          createdAt: '20 Aug 2026, 09:30 AM',
         ),
         VerificationHistoryItem(
           id: 'hist-5',
-          hospitalId: '3cde56f1-c301-4982-a721-998811223344',
+          hospitalId: '3bcc89c1-c301-4182-a721-e75bfbeec6b4',
           previousStatus: 'pending',
           newStatus: 'under_review',
           action: 'moved_to_under_review',
-          createdAt: '19 Aug 2026, 02:00 PM',
+          createdAt: '22 Aug 2026, 10:00 AM',
         ),
         VerificationHistoryItem(
           id: 'hist-6',
-          hospitalId: '3cde56f1-c301-4982-a721-998811223344',
+          hospitalId: '3bcc89c1-c301-4182-a721-e75bfbeec6b4',
           previousStatus: 'under_review',
           newStatus: 'verified',
           action: 'hospital_approved',
-          notes: 'NABH and Central AYUSH accreditation verified',
-          createdAt: '20 Aug 2026, 04:00 PM',
+          notes: 'All clinical establishment documents and AYUSH registration verified successfully',
+          createdAt: '24 Aug 2026, 04:10 PM',
         ),
       ],
     ),
     AdminHospitalDetail(
       id: '4def78a2-d402-5093-b832-112233445566',
-      applicationId: 'AYUSH-HOSP-2026-11982',
+      applicationId: 'AYUSH-HOSP-2026-11894',
       facilityName: 'Patanjali Yogpeeth & Wellness Center',
-      facilityType: 'Trust / NGO AYUSH Center',
+      facilityType: 'Private AYUSH Super Speciality Hospital',
       ayushSystem: 'Yoga & Naturopathy',
       state: 'Uttarakhand',
       district: 'Haridwar',
@@ -246,12 +259,115 @@ class AdminHospitalService {
     ),
   ];
 
+  // ==========================================================================
+  // HTTP REQUEST HELPER WITH EXCEPTION HANDLING
+  // ==========================================================================
+
+  Future<dynamic> _sendRequest(
+    String method,
+    String url, {
+    Map<String, dynamic>? body,
+  }) async {
+    final uri = Uri.parse(url);
+    final headers = ApiConfig.defaultHeaders;
+
+    try {
+      http.Response response;
+      if (method == 'GET') {
+        response = await _client.get(uri, headers: headers).timeout(ApiConfig.requestTimeout);
+      } else if (method == 'PATCH') {
+        response = await _client
+            .patch(uri, headers: headers, body: jsonEncode(body ?? {}))
+            .timeout(ApiConfig.requestTimeout);
+      } else if (method == 'POST') {
+        response = await _client
+            .post(uri, headers: headers, body: jsonEncode(body ?? {}))
+            .timeout(ApiConfig.requestTimeout);
+      } else {
+        throw ApiException('Unsupported HTTP method: $method');
+      }
+
+      final statusCode = response.statusCode;
+      dynamic responseJson;
+      try {
+        responseJson = jsonDecode(response.body);
+      } catch (_) {
+        responseJson = null;
+      }
+
+      if (statusCode >= 200 && statusCode < 300) {
+        return responseJson != null ? responseJson['data'] : null;
+      }
+
+      String errorMessage = 'Server responded with error status $statusCode';
+      if (responseJson != null) {
+        if (responseJson['errors'] != null && (responseJson['errors'] as List).isNotEmpty) {
+          errorMessage = (responseJson['errors'] as List).join('\n');
+        } else if (responseJson['message'] != null) {
+          errorMessage = responseJson['message'].toString();
+        }
+      }
+
+      throw ApiException(errorMessage, statusCode: statusCode);
+    } on SocketException catch (_) {
+      throw ApiException(
+        'Cannot connect to MediKiosk backend server at ${ApiConfig.baseUrl}. Please check that the server is running.',
+      );
+    } on http.ClientException catch (_) {
+      throw ApiException(
+        'Network error communicating with ${ApiConfig.baseUrl}. Ensure CORS and local server are accessible.',
+      );
+    } on TimeoutException catch (_) {
+      throw ApiException('Request to MediKiosk backend timed out. Please try again.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Unexpected error: $e');
+    }
+  }
+
+  // ==========================================================================
+  // DASHBOARD STATISTICS API
+  // ==========================================================================
+
+  /// Fetches aggregate counts and recent registrations from GET /api/admin/dashboard
+  Future<AdminDashboardData> getDashboardStats() async {
+    if (useMockData) {
+      return AdminDashboardData(
+        totalHospitals: _mockHospitals.length,
+        pending: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.pending).length,
+        underReview: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.under_review).length,
+        verified: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.verified).length,
+        rejected: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.rejected).length,
+        recentRegistrations: _mockHospitals.take(5).toList(),
+      );
+    }
+
+    try {
+      final data = await _sendRequest('GET', ApiConfig.adminDashboard);
+      return AdminDashboardData.fromJson(data as Map<String, dynamic>);
+    } catch (_) {
+      // If live backend call fails in test mode, fallback to in-memory stats
+      if (useMockData) {
+        return AdminDashboardData(
+          totalHospitals: _mockHospitals.length,
+          pending: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.pending).length,
+          underReview: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.under_review).length,
+          verified: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.verified).length,
+          rejected: _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.rejected).length,
+          recentRegistrations: _mockHospitals.take(5).toList(),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Backward-compatible synchronous/fast stats helper
   Map<String, int> getStatistics() {
-    int total = _hospitals.length;
-    int pending = _hospitals.where((h) => h.verificationStatus == VerificationStatus.pending).length;
-    int underReview = _hospitals.where((h) => h.verificationStatus == VerificationStatus.under_review).length;
-    int verified = _hospitals.where((h) => h.verificationStatus == VerificationStatus.verified).length;
-    int rejected = _hospitals.where((h) => h.verificationStatus == VerificationStatus.rejected).length;
+    int total = _mockHospitals.length;
+    int pending = _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.pending).length;
+    int underReview = _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.under_review).length;
+    int verified = _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.verified).length;
+    int rejected = _mockHospitals.where((h) => h.verificationStatus == VerificationStatus.rejected).length;
 
     return {
       'total': total,
@@ -262,237 +378,374 @@ class AdminHospitalService {
     };
   }
 
-  Future<List<AdminHospitalDetail>> getHospitals({VerificationStatus? status, String? search}) async {
-    var results = List<AdminHospitalDetail>.from(_hospitals);
+  // ==========================================================================
+  // HOSPITAL LIST & SEARCH API
+  // ==========================================================================
 
+  /// Fetches hospitals from GET /api/admin/hospitals with optional status filter and search query
+  Future<List<AdminHospitalDetail>> getHospitals({
+    VerificationStatus? status,
+    String? search,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    if (useMockData) {
+      var results = List<AdminHospitalDetail>.from(_mockHospitals);
+      if (status != null) {
+        results = results.where((h) => h.verificationStatus == status).toList();
+      }
+      if (search != null && search.trim().isNotEmpty) {
+        final query = search.trim().toLowerCase();
+        results = results.where((h) {
+          return h.facilityName.toLowerCase().contains(query) ||
+              h.applicationId.toLowerCase().contains(query) ||
+              h.registrationNumber.toLowerCase().contains(query) ||
+              (h.hfrId != null && h.hfrId!.toLowerCase().contains(query)) ||
+              h.state.toLowerCase().contains(query) ||
+              h.district.toLowerCase().contains(query);
+        }).toList();
+      }
+      return results;
+    }
+
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
     if (status != null) {
-      results = results.where((h) => h.verificationStatus == status).toList();
+      queryParams['status'] = status.name;
     }
-
     if (search != null && search.trim().isNotEmpty) {
-      final query = search.trim().toLowerCase();
-      results = results.where((h) {
-        return h.facilityName.toLowerCase().contains(query) ||
-            h.applicationId.toLowerCase().contains(query) ||
-            h.registrationNumber.toLowerCase().contains(query) ||
-            (h.hfrId != null && h.hfrId!.toLowerCase().contains(query)) ||
-            h.state.toLowerCase().contains(query) ||
-            h.district.toLowerCase().contains(query);
-      }).toList();
+      queryParams['search'] = search.trim();
     }
 
-    return results;
+    final queryString = Uri(queryParameters: queryParams).query;
+    final url = '${ApiConfig.adminHospitals}?$queryString';
+
+    final data = await _sendRequest('GET', url);
+    final list = data as List? ?? [];
+    return list.map((e) => AdminHospitalDetail.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<AdminHospitalDetail>> getPendingHospitals() async {
-    return getHospitals(status: VerificationStatus.pending);
+  /// Fetches pending hospitals from GET /api/admin/hospitals/pending
+  Future<List<AdminHospitalDetail>> getPendingHospitals({int page = 1, int limit = 50}) async {
+    if (useMockData) {
+      return getHospitals(status: VerificationStatus.pending);
+    }
+    final url = '${ApiConfig.adminPendingHospitals}?page=$page&limit=$limit';
+    final data = await _sendRequest('GET', url);
+    final list = data as List? ?? [];
+    return list.map((e) => AdminHospitalDetail.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  // ==========================================================================
+  // HOSPITAL DETAIL API
+  // ==========================================================================
+
+  /// Fetches full hospital details from GET /api/admin/hospitals/:hospitalId
   Future<AdminHospitalDetail> getHospitalDetails(String hospitalId) async {
-    final hospital = _hospitals.firstWhere(
-      (h) => h.id == hospitalId || h.applicationId == hospitalId,
-      orElse: () => throw Exception('Hospital not found'),
-    );
-    return hospital;
+    if (useMockData) {
+      final hospital = _mockHospitals.firstWhere(
+        (h) => h.id == hospitalId || h.applicationId == hospitalId,
+        orElse: () => throw ApiException('Hospital not found', statusCode: 404),
+      );
+      return hospital;
+    }
+
+    final url = ApiConfig.adminHospitalDetail(hospitalId);
+    final data = await _sendRequest('GET', url);
+    return AdminHospitalDetail.fromJson(data as Map<String, dynamic>);
   }
 
+  // ==========================================================================
+  // STATUS TRANSITION ACTIONS
+  // ==========================================================================
+
+  /// Moves hospital to Under Review via PATCH /api/admin/hospitals/:hospitalId/under-review
   Future<AdminHospitalDetail> startReview(String hospitalId) async {
-    final index = _hospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
-    if (index == -1) throw Exception('Hospital not found');
+    if (useMockData) {
+      final index = _mockHospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
+      if (index == -1) throw ApiException('Hospital not found', statusCode: 404);
 
-    final hospital = _hospitals[index];
-    if (hospital.verificationStatus != VerificationStatus.pending) {
-      throw Exception("Cannot move to under_review from status '${hospital.verificationStatus.displayName}'");
-    }
-
-    hospital.verificationStatus = VerificationStatus.under_review;
-    hospital.verificationHistory.add(
-      VerificationHistoryItem(
-        id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
-        hospitalId: hospital.id,
-        previousStatus: 'pending',
-        newStatus: 'under_review',
-        action: 'moved_to_under_review',
-        notes: 'Verification review started by Administrator',
-        createdAt: 'Just now',
-      ),
-    );
-
-    return hospital;
-  }
-
-  Future<AdminHospitalDetail> approveHospital(String hospitalId, {String? notes}) async {
-    final index = _hospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
-    if (index == -1) throw Exception('Hospital not found');
-
-    final hospital = _hospitals[index];
-    if (hospital.verificationStatus != VerificationStatus.under_review &&
-        hospital.verificationStatus != VerificationStatus.pending) {
-      throw Exception("Cannot approve hospital from status '${hospital.verificationStatus.displayName}'");
-    }
-
-    final prevStatus = hospital.verificationStatus.name;
-    hospital.verificationStatus = VerificationStatus.verified;
-    hospital.rejectionReason = null;
-    hospital.verifiedAt = 'Today';
-    hospital.verificationHistory.add(
-      VerificationHistoryItem(
-        id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
-        hospitalId: hospital.id,
-        previousStatus: prevStatus,
-        newStatus: 'verified',
-        action: 'hospital_approved',
-        notes: notes ?? 'AYUSH facility credentials approved by verification authority',
-        createdAt: 'Just now',
-      ),
-    );
-
-    return hospital;
-  }
-
-  Future<AdminHospitalDetail> rejectHospital(String hospitalId, String reason, {String? notes}) async {
-    if (reason.trim().isEmpty) {
-      throw Exception('Rejection reason is required');
-    }
-
-    final index = _hospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
-    if (index == -1) throw Exception('Hospital not found');
-
-    final hospital = _hospitals[index];
-    if (hospital.verificationStatus == VerificationStatus.verified) {
-      throw Exception('Cannot reject an already verified hospital');
-    }
-
-    final prevStatus = hospital.verificationStatus.name;
-    hospital.verificationStatus = VerificationStatus.rejected;
-    hospital.rejectionReason = reason.trim();
-    hospital.verificationHistory.add(
-      VerificationHistoryItem(
-        id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
-        hospitalId: hospital.id,
-        previousStatus: prevStatus,
-        newStatus: 'rejected',
-        action: 'hospital_rejected',
-        rejectionReason: reason.trim(),
-        notes: notes ?? 'Hospital onboarding rejected',
-        createdAt: 'Just now',
-      ),
-    );
-
-    return hospital;
-  }
-
-  /// Registers a newly submitted hospital into the shared state repository.
-  /// Prevents duplicate entries and ensures it appears at the top of pending reviews.
-  void registerHospital(AyushHospital hospital) {
-    final existingIndex = _hospitals.indexWhere(
-      (h) =>
-          h.applicationId == hospital.applicationId ||
-          (hospital.regNumber.isNotEmpty && h.registrationNumber.toLowerCase() == hospital.regNumber.toLowerCase()) ||
-          (hospital.officialEmail.isNotEmpty && h.officialEmail.toLowerCase() == hospital.officialEmail.toLowerCase()),
-    );
-
-    final detail = AdminHospitalDetail(
-      id: hospital.applicationId,
-      applicationId: hospital.applicationId,
-      facilityName: hospital.hospitalName,
-      facilityType: hospital.hospitalType,
-      ayushSystem: 'Ayurveda',
-      state: hospital.state,
-      district: hospital.district,
-      address: hospital.address,
-      pinCode: null,
-      officialEmail: hospital.officialEmail,
-      officialPhone: hospital.phoneNumber,
-      registrationNumber: hospital.regNumber,
-      ayushId: hospital.ayushId.isNotEmpty ? hospital.ayushId : null,
-      hfrId: null,
-      verificationStatus: hospital.verificationStatus,
-      createdAt: hospital.submittedDate.isNotEmpty ? hospital.submittedDate : 'Today',
-      authorizedOfficials: [
-        HospitalOfficial(
-          id: 'off-${hospital.applicationId}',
-          hospitalId: hospital.applicationId,
-          fullName: hospital.authorizedPersonName,
-          designation: hospital.authorizedPersonDesignation,
-          officialEmail: hospital.officialEmail,
-          officialPhone: hospital.phoneNumber,
-          isPrimary: true,
-        ),
-      ],
-      documents: [
-        if (hospital.regCertFileName != null && hospital.regCertFileName!.isNotEmpty)
-          HospitalDocument(
-            id: 'doc-${hospital.applicationId}-1',
-            hospitalId: hospital.applicationId,
-            documentType: 'registration_certificate',
-            storagePath: 'certificates/${hospital.regCertFileName}',
-            originalFilename: hospital.regCertFileName!,
-            mimeType: 'application/pdf',
-            documentStatus: 'pending',
-            uploadedAt: 'Today',
-          ),
-        if (hospital.authorizedPersonIdFileName != null && hospital.authorizedPersonIdFileName!.isNotEmpty)
-          HospitalDocument(
-            id: 'doc-${hospital.applicationId}-2',
-            hospitalId: hospital.applicationId,
-            documentType: 'authorized_official_id',
-            storagePath: 'ids/${hospital.authorizedPersonIdFileName}',
-            originalFilename: hospital.authorizedPersonIdFileName!,
-            mimeType: 'application/pdf',
-            documentStatus: 'pending',
-            uploadedAt: 'Today',
-          ),
-      ],
-      verificationHistory: [
+      final hospital = _mockHospitals[index];
+      hospital.verificationStatus = VerificationStatus.under_review;
+      hospital.verificationHistory.add(
         VerificationHistoryItem(
           id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
-          hospitalId: hospital.applicationId,
-          previousStatus: null,
-          newStatus: 'pending',
-          action: 'registration_submitted',
-          notes: 'Hospital registration submitted via Hospital Portal',
+          hospitalId: hospital.id,
+          previousStatus: 'pending',
+          newStatus: 'under_review',
+          action: 'moved_to_under_review',
+          notes: 'Verification review started by Administrator',
           createdAt: 'Just now',
         ),
-      ],
-    );
-
-    if (existingIndex != -1) {
-      _hospitals[existingIndex] = detail;
-    } else {
-      _hospitals.insert(0, detail);
+      );
+      return hospital;
     }
+
+    final url = ApiConfig.adminMarkUnderReview(hospitalId);
+    await _sendRequest('PATCH', url);
+    // Refresh complete updated hospital details
+    return getHospitalDetails(hospitalId);
   }
 
-  /// Searches for a hospital in the shared state repository by applicationId, officialEmail, regNumber, or ayushId.
-  AyushHospital? findHospitalForLogin(String query) {
-    if (query.trim().isEmpty) return null;
-    final q = query.trim().toLowerCase();
+  /// Approves hospital registration via PATCH /api/admin/hospitals/:hospitalId/approve
+  Future<AdminHospitalDetail> approveHospital(String hospitalId, {String? notes}) async {
+    if (useMockData) {
+      final index = _mockHospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
+      if (index == -1) throw ApiException('Hospital not found', statusCode: 404);
 
-    for (final h in _hospitals) {
-      if (h.applicationId.toLowerCase() == q ||
-          h.officialEmail.toLowerCase() == q ||
-          h.registrationNumber.toLowerCase() == q ||
-          (h.ayushId != null && h.ayushId!.toLowerCase() == q)) {
-        return AyushHospital(
-          applicationId: h.applicationId,
-          hospitalName: h.facilityName,
-          regNumber: h.registrationNumber,
-          ayushId: h.ayushId ?? '',
-          address: h.address,
-          state: h.state,
-          district: h.district,
-          hospitalType: h.facilityType,
-          authorizedPersonName: h.authorizedOfficials.isNotEmpty ? h.authorizedOfficials.first.fullName : '',
-          authorizedPersonDesignation: h.authorizedOfficials.isNotEmpty ? h.authorizedOfficials.first.designation : '',
-          officialEmail: h.officialEmail,
-          phoneNumber: h.officialPhone,
-          password: 'password123',
-          verificationStatus: h.verificationStatus,
-          submittedDate: h.createdAt,
+      final hospital = _mockHospitals[index];
+      final prevStatus = hospital.verificationStatus.name;
+      hospital.verificationStatus = VerificationStatus.verified;
+      hospital.rejectionReason = null;
+      hospital.verifiedAt = 'Today';
+      hospital.verificationHistory.add(
+        VerificationHistoryItem(
+          id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
+          hospitalId: hospital.id,
+          previousStatus: prevStatus,
+          newStatus: 'verified',
+          action: 'hospital_approved',
+          notes: notes ?? 'AYUSH facility credentials approved by verification authority',
+          createdAt: 'Just now',
+        ),
+      );
+      return hospital;
+    }
+
+    final url = ApiConfig.adminApproveHospital(hospitalId);
+    await _sendRequest('PATCH', url, body: {'notes': notes});
+    // Refresh complete updated hospital details
+    return getHospitalDetails(hospitalId);
+  }
+
+  /// Rejects hospital registration via PATCH /api/admin/hospitals/:hospitalId/reject
+  Future<AdminHospitalDetail> rejectHospital(String hospitalId, String reason, {String? notes}) async {
+    if (useMockData) {
+      final index = _mockHospitals.indexWhere((h) => h.id == hospitalId || h.applicationId == hospitalId);
+      if (index == -1) throw ApiException('Hospital not found', statusCode: 404);
+
+      final hospital = _mockHospitals[index];
+      final prevStatus = hospital.verificationStatus.name;
+      hospital.verificationStatus = VerificationStatus.rejected;
+      hospital.rejectionReason = reason.trim();
+      hospital.verificationHistory.add(
+        VerificationHistoryItem(
+          id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
+          hospitalId: hospital.id,
+          previousStatus: prevStatus,
+          newStatus: 'rejected',
+          action: 'hospital_rejected',
+          rejectionReason: reason.trim(),
+          notes: notes,
+          createdAt: 'Just now',
+        ),
+      );
+      return hospital;
+    }
+
+    final url = ApiConfig.adminRejectHospital(hospitalId);
+    final payload = <String, dynamic>{'reason': reason.trim()};
+    if (notes != null) payload['notes'] = notes;
+    await _sendRequest('PATCH', url, body: payload);
+    // Refresh complete updated hospital details
+    return getHospitalDetails(hospitalId);
+  }
+
+  /// Registers a new hospital submitted through the Hospital Portal
+  Future<void> registerHospital(AyushHospital hospital) async {
+    if (useMockData) {
+      final detail = AdminHospitalDetail(
+        id: hospital.applicationId,
+        applicationId: hospital.applicationId,
+        facilityName: hospital.hospitalName,
+        facilityType: hospital.hospitalType,
+        ayushSystem: 'Ayurveda',
+        state: hospital.state,
+        district: hospital.district,
+        address: hospital.address,
+        officialEmail: hospital.officialEmail,
+        officialPhone: hospital.phoneNumber,
+        registrationNumber: hospital.regNumber,
+        ayushId: hospital.ayushId,
+        verificationStatus: hospital.verificationStatus,
+        createdAt: hospital.submittedDate,
+        authorizedOfficials: [
+          HospitalOfficial(
+            id: 'off-${hospital.applicationId}',
+            hospitalId: hospital.applicationId,
+            fullName: hospital.authorizedPersonName,
+            designation: hospital.authorizedPersonDesignation,
+            officialEmail: hospital.officialEmail,
+            officialPhone: hospital.phoneNumber,
+          ),
+        ],
+        documents: [
+          if (hospital.regCertFileName != null)
+            HospitalDocument(
+              id: 'doc-cert-${hospital.applicationId}',
+              hospitalId: hospital.applicationId,
+              documentType: 'registration_certificate',
+              storagePath: 'certificates/${hospital.regCertFileName}',
+              originalFilename: hospital.regCertFileName!,
+              uploadedAt: hospital.submittedDate,
+            ),
+          if (hospital.authorizedPersonIdFileName != null)
+            HospitalDocument(
+              id: 'doc-id-${hospital.applicationId}',
+              hospitalId: hospital.applicationId,
+              documentType: 'authorized_official_id',
+              storagePath: 'ids/${hospital.authorizedPersonIdFileName}',
+              originalFilename: hospital.authorizedPersonIdFileName!,
+              uploadedAt: hospital.submittedDate,
+            ),
+        ],
+        verificationHistory: [
+          VerificationHistoryItem(
+            id: 'hist-init-${hospital.applicationId}',
+            hospitalId: hospital.applicationId,
+            newStatus: 'pending',
+            action: 'registration_submitted',
+            notes: 'Hospital submitted onboarding application',
+            createdAt: hospital.submittedDate,
+          ),
+        ],
+      );
+
+      _mockHospitals.insert(0, detail);
+      return;
+    }
+
+    final payload = {
+      "facility_name": hospital.hospitalName,
+      "facility_type": hospital.hospitalType,
+      "state": hospital.state,
+      "district": hospital.district,
+      "address": hospital.address,
+      "official_email": hospital.officialEmail,
+      "official_phone": hospital.phoneNumber,
+      "registration_number": hospital.regNumber,
+      "hfr_id": hospital.ayushId,
+      "password": hospital.password,
+      "authorized_official": {
+        "full_name": hospital.authorizedPersonName,
+        "designation": hospital.authorizedPersonDesignation,
+        "official_email": hospital.officialEmail,
+        "official_phone": hospital.phoneNumber
+      }
+    };
+
+    await _sendRequest('POST', ApiConfig.hospitalRegister, body: payload);
+  }
+
+  /// Finds a registered hospital by ID, application ID, or email for login check (Mock Mode Only)
+  AyushHospital? _findHospitalForLoginMock(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return null;
+
+    final match = _mockHospitals.cast<AdminHospitalDetail?>().firstWhere(
+      (h) =>
+          h?.id.toLowerCase() == q ||
+          h?.applicationId.toLowerCase() == q ||
+          h?.officialEmail.toLowerCase() == q ||
+          h?.registrationNumber.toLowerCase() == q,
+      orElse: () => null,
+    );
+
+    if (match == null) return null;
+
+    final primaryOfficial = match.authorizedOfficials.isNotEmpty ? match.authorizedOfficials.first : null;
+
+    return AyushHospital(
+      applicationId: match.applicationId,
+      hospitalName: match.facilityName,
+      regNumber: match.registrationNumber,
+      ayushId: match.ayushId ?? 'AYUSH/FIR/2026/0000',
+      address: match.address,
+      state: match.state,
+      district: match.district,
+      hospitalType: match.facilityType,
+      authorizedPersonName: primaryOfficial?.fullName ?? 'Authorized Officer',
+      authorizedPersonDesignation: primaryOfficial?.designation ?? 'Medical Superintendent',
+      officialEmail: primaryOfficial?.officialEmail ?? match.officialEmail,
+      phoneNumber: primaryOfficial?.officialPhone ?? match.officialPhone,
+      password: 'password123',
+      verificationStatus: match.verificationStatus,
+      submittedDate: match.createdAt,
+    );
+  }
+
+  /// Authenticates a hospital using their registration ID or email and password
+  Future<AyushHospital> loginHospital(String identifier, String password) async {
+    if (useMockData) {
+      final hospital = _findHospitalForLoginMock(identifier);
+      if (hospital == null || password != 'password123') {
+        throw ApiException('Invalid credentials', statusCode: 401);
+      }
+      return hospital;
+    }
+
+    final payload = {
+      'identifier': identifier.trim(),
+      'password': password,
+    };
+
+    final data = await _sendRequest('POST', ApiConfig.hospitalLogin, body: payload);
+    
+    final map = data as Map<String, dynamic>;
+    final official = map['primary_official'] as Map<String, dynamic>?;
+
+    VerificationStatus parsedStatus = VerificationStatus.pending;
+    try {
+      final statusStr = (map['verification_status'] as String?)?.toLowerCase();
+      if (statusStr != null) {
+        parsedStatus = VerificationStatus.values.firstWhere(
+          (e) => e.name == statusStr,
+          orElse: () => VerificationStatus.pending
         );
       }
+    } catch (_) {}
+
+    return AyushHospital(
+      applicationId: map['application_id'] ?? '',
+      hospitalName: map['facility_name'] ?? '',
+      regNumber: map['registration_number'] ?? '',
+      ayushId: map['ayush_id'] ?? '',
+      address: map['address'] ?? '',
+      state: map['state'] ?? '',
+      district: map['district'] ?? '',
+      hospitalType: map['facility_type'] ?? '',
+      authorizedPersonName: official?['full_name'] ?? '',
+      authorizedPersonDesignation: official?['designation'] ?? '',
+      officialEmail: map['official_email'] ?? '',
+      phoneNumber: map['official_phone'] ?? '',
+      password: '', // Clear password for security
+      verificationStatus: parsedStatus,
+      submittedDate: map['created_at'] ?? '',
+    );
+  }
+
+  /// Quickly fetches the current verification status for a hospital
+  Future<VerificationStatus> checkHospitalStatus(String applicationId) async {
+    if (useMockData) {
+      final hospital = _findHospitalForLoginMock(applicationId);
+      return hospital?.verificationStatus ?? VerificationStatus.pending;
     }
-    return null;
+
+    final data = await _sendRequest('GET', ApiConfig.hospitalStatus(applicationId));
+    final map = data as Map<String, dynamic>;
+    
+    try {
+      final statusStr = (map['verification_status'] as String?)?.toLowerCase();
+      if (statusStr != null) {
+        return VerificationStatus.values.firstWhere(
+          (e) => e.name == statusStr,
+          orElse: () => VerificationStatus.pending
+        );
+      }
+    } catch (_) {}
+    
+    return VerificationStatus.pending;
   }
 }

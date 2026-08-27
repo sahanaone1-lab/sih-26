@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const { getSupabase } = require('../config/supabase');
 
 /**
@@ -29,6 +30,7 @@ const registerHospital = async (registrationData) => {
     registration_number,
     ayush_id,
     hfr_id,
+    password,
   } = registrationData;
 
   // Extract authorized official details (supports both nested and flat field naming)
@@ -127,6 +129,23 @@ const registerHospital = async (registrationData) => {
     }
   }
 
+  // 4.5. Create Supabase Auth User
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email: official_email.trim().toLowerCase(),
+    password: password,
+    email_confirm: true,
+    user_metadata: { role: 'hospital' }
+  });
+
+  if (authError) {
+    if (authError.message.includes('already registered')) {
+      const error = new Error('An account with this email already exists in Auth');
+      error.statusCode = 409;
+      throw error;
+    }
+    throw authError;
+  }
+
   // 5. Insert Hospital Record (Status strictly forced to 'pending')
   const { data: newHospital, error: hospitalInsertError } = await supabase
     .from('hospitals')
@@ -193,7 +212,119 @@ const registerHospital = async (registrationData) => {
   };
 };
 
+/**
+ * Service to login an AYUSH Hospital
+ */
+const loginHospital = async (identifier, password) => {
+  const supabase = getSupabase();
+
+  if (!identifier || !password) {
+    const error = new Error('Identifier and password are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Determine email to use for Supabase Auth
+  let loginEmail = identifier.trim().toLowerCase();
+  
+  // If identifier is not an email, assume it's a Registration ID or Application ID and look up the email
+  if (!loginEmail.includes('@')) {
+    const { data: lookup, error: lookupError } = await supabase
+      .from('hospitals')
+      .select('official_email')
+      .or(`registration_number.eq.${identifier.trim()},application_id.eq.${identifier.trim()}`)
+      .maybeSingle();
+      
+    if (lookupError) throw lookupError;
+    if (!lookup) {
+      const error = new Error('Invalid credentials');
+      error.statusCode = 401;
+      throw error;
+    }
+    loginEmail = lookup.official_email;
+  }
+
+  // Verify password using Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: loginEmail,
+    password: password,
+  });
+
+  if (authError) {
+    const error = new Error('Invalid credentials');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Fetch hospital details
+  const { data: hospital, error: searchError } = await supabase
+    .from('hospitals')
+    .select(`
+      id, 
+      application_id, 
+      facility_name, 
+      facility_type, 
+      state, 
+      district, 
+      address, 
+      official_email, 
+      official_phone, 
+      registration_number, 
+      ayush_id, 
+      verification_status,
+      created_at
+    `)
+    .eq('official_email', loginEmail)
+    .single();
+
+  if (searchError) throw searchError;
+
+  // Get primary authorized official
+  const { data: officials } = await supabase
+    .from('hospital_officials')
+    .select('*')
+    .eq('hospital_id', hospital.id)
+    .eq('is_primary', true)
+    .limit(1);
+
+  const official = officials && officials.length > 0 ? officials[0] : null;
+
+  return {
+    ...hospital,
+    primary_official: official,
+  };
+};
+
+/**
+ * Service to check hospital verification status quickly
+ */
+const checkHospitalStatus = async (applicationId) => {
+  const supabase = getSupabase();
+
+  if (!applicationId) {
+    const error = new Error('Application ID is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const { data, error: searchError } = await supabase
+    .from('hospitals')
+    .select('verification_status')
+    .eq('application_id', applicationId)
+    .single();
+
+  if (searchError) {
+    const error = new Error('Hospital not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return { verification_status: data.verification_status };
+};
+
 module.exports = {
   registerHospital,
+  loginHospital,
+  checkHospitalStatus,
   generateApplicationId,
 };

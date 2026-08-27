@@ -230,7 +230,41 @@ const updateHospitalStatus = async (hospitalId, targetStatus, { reason, notes, a
   };
 };
 
+/**
+ * Returns aggregated dashboard statistics and recent registrations
+ */
+const getDashboardStats = async () => {
+  const supabase = getSupabase();
+
+  // Fetch counts by verification status in parallel
+  const [totalRes, pendingRes, underReviewRes, verifiedRes, rejectedRes, recentRes] = await Promise.all([
+    supabase.from('hospitals').select('*', { count: 'exact', head: true }),
+    supabase.from('hospitals').select('*', { count: 'exact', head: true }).eq('verification_status', VerificationStatus.PENDING),
+    supabase.from('hospitals').select('*', { count: 'exact', head: true }).eq('verification_status', VerificationStatus.UNDER_REVIEW),
+    supabase.from('hospitals').select('*', { count: 'exact', head: true }).eq('verification_status', VerificationStatus.VERIFIED),
+    supabase.from('hospitals').select('*', { count: 'exact', head: true }).eq('verification_status', VerificationStatus.REJECTED),
+    supabase.from('hospitals').select('*, hospital_officials(full_name, designation, official_email, official_phone, is_primary)').order('created_at', { ascending: false }).limit(5),
+  ]);
+
+  if (totalRes.error) throw totalRes.error;
+  if (pendingRes.error) throw pendingRes.error;
+  if (underReviewRes.error) throw underReviewRes.error;
+  if (verifiedRes.error) throw verifiedRes.error;
+  if (rejectedRes.error) throw rejectedRes.error;
+  if (recentRes.error) throw recentRes.error;
+
+  return {
+    total_hospitals: totalRes.count || 0,
+    pending: pendingRes.count || 0,
+    under_review: underReviewRes.count || 0,
+    verified: verifiedRes.count || 0,
+    rejected: rejectedRes.count || 0,
+    recent_registrations: recentRes.data || [],
+  };
+};
+
 module.exports = {
+  getDashboardStats,
   listHospitals,
   getPendingHospitals,
   getHospitalDetails,

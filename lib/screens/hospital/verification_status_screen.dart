@@ -5,6 +5,7 @@ import '../../models/hospital_model.dart';
 import '../../widgets/ayush_widgets.dart';
 import 'ayush_dashboard_screen.dart';
 import 'hospital_registration_screen.dart';
+import '../../services/admin_hospital_service.dart';
 
 /// VerificationStatusScreen for AYUSH Hospital Portal.
 ///
@@ -23,6 +24,38 @@ class VerificationStatusScreen extends StatefulWidget {
 
 class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
   late VerificationStatus _currentStatus;
+  bool _isRefreshing = false;
+
+  Future<void> _refreshStatus() async {
+    setState(() => _isRefreshing = true);
+    try {
+      final AdminHospitalService service = AdminHospitalService();
+      final newStatus = await service.checkHospitalStatus(widget.hospital.applicationId);
+      
+      if (mounted) {
+        setState(() => _currentStatus = newStatus);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status updated to: ${newStatus.name}'),
+            backgroundColor: AppColors.greenSuccess,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check status: $e'),
+            backgroundColor: AppColors.saffronDark,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -281,18 +314,15 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Re-checked status: Verification process is active with AYUSH regulatory authority.',
-                                  ),
-                                  backgroundColor: AppColors.navyPrimary,
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.refresh_rounded, size: 18.0),
-                            label: const Text('Refresh Status'),
+                            onPressed: _isRefreshing ? null : _refreshStatus,
+                            icon: _isRefreshing 
+                              ? const SizedBox(
+                                  width: 14.0, 
+                                  height: 14.0, 
+                                  child: CircularProgressIndicator(strokeWidth: 2)
+                                )
+                              : const Icon(Icons.refresh_rounded, size: 18.0),
+                            label: Text(_isRefreshing ? 'Refreshing...' : 'Refresh Status'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.navyPrimary,
                               side: const BorderSide(

@@ -9,6 +9,12 @@ const { validateRejection } = require('../validators/admin.validator');
 router.use(requireAdmin);
 
 /**
+ * @route   GET /api/admin/dashboard
+ * @desc    Get aggregate verification statistics and recent hospital registrations
+ */
+router.get('/dashboard', adminController.getDashboardStats);
+
+/**
  * @route   GET /api/admin/hospitals/pending
  * @desc    List pending hospital applications
  */

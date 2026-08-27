@@ -153,6 +153,12 @@ class AdminHospitalDetail {
     this.verificationHistory = const [],
   });
 
+  /// User-friendly HFR ID representation (displays "Not Provided" when null/empty)
+  String get displayHfrId => (hfrId != null && hfrId!.trim().isNotEmpty) ? hfrId! : 'Not Provided';
+
+  /// User-friendly AYUSH ID representation
+  String get displayAyushId => (ayushId != null && ayushId!.trim().isNotEmpty) ? ayushId! : 'Not Provided';
+
   static VerificationStatus parseStatus(String? status) {
     switch (status?.toLowerCase()) {
       case 'under_review':
@@ -194,6 +200,71 @@ class AdminHospitalDetail {
       authorizedOfficials: officialsJson.map((e) => HospitalOfficial.fromJson(e as Map<String, dynamic>)).toList(),
       documents: docsJson.map((e) => HospitalDocument.fromJson(e as Map<String, dynamic>)).toList(),
       verificationHistory: historyJson.map((e) => VerificationHistoryItem.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
+/// Pagination metadata returned by API endpoints
+class ApiPagination {
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+
+  ApiPagination({
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+  });
+
+  factory ApiPagination.fromJson(Map<String, dynamic> json) {
+    return ApiPagination(
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? 20,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      totalPages: (json['total_pages'] as num?)?.toInt() ?? 1,
+    );
+  }
+}
+
+/// Aggregated Admin Dashboard Statistics
+class AdminDashboardData {
+  final int totalHospitals;
+  final int pending;
+  final int underReview;
+  final int verified;
+  final int rejected;
+  final List<AdminHospitalDetail> recentRegistrations;
+
+  AdminDashboardData({
+    required this.totalHospitals,
+    required this.pending,
+    required this.underReview,
+    required this.verified,
+    required this.rejected,
+    required this.recentRegistrations,
+  });
+
+  Map<String, int> toStatsMap() {
+    return {
+      'total': totalHospitals,
+      'pending': pending,
+      'under_review': underReview,
+      'verified': verified,
+      'rejected': rejected,
+    };
+  }
+
+  factory AdminDashboardData.fromJson(Map<String, dynamic> json) {
+    final recentList = json['recent_registrations'] as List? ?? [];
+    return AdminDashboardData(
+      totalHospitals: (json['total_hospitals'] as num?)?.toInt() ?? 0,
+      pending: (json['pending'] as num?)?.toInt() ?? 0,
+      underReview: (json['under_review'] as num?)?.toInt() ?? 0,
+      verified: (json['verified'] as num?)?.toInt() ?? 0,
+      rejected: (json['rejected'] as num?)?.toInt() ?? 0,
+      recentRegistrations: recentList.map((e) => AdminHospitalDetail.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
 }

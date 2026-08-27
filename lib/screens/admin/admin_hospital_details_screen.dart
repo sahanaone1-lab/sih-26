@@ -202,8 +202,31 @@ class _AdminHospitalDetailsScreenState extends State<AdminHospitalDetailsScreen>
 
     if (_hospital == null) {
       return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Hospital not found')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_rounded),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.red, size: 48.0),
+                const SizedBox(height: 12.0),
+                const Text('Hospital record could not be loaded.', style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16.0),
+                ElevatedButton.icon(
+                  onPressed: _loadHospitalDetails,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry Loading Details'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

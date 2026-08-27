@@ -11,8 +11,13 @@ import 'package:medical_app/screens/patient/patient_dashboard_screen.dart';
 import 'package:medical_app/screens/patient/patient_intake_screen.dart';
 import 'package:medical_app/screens/patient/patient_otp_screen.dart';
 import 'package:medical_app/services/abha_verification_service.dart';
+import 'package:medical_app/services/admin_hospital_service.dart';
 
 void main() {
+  setUp(() {
+    AdminHospitalService().useMockData = true;
+  });
+
   group('HomeScreen, Role Navigation, and Authentication Tests', () {
     testWidgets('1. HomeScreen renders role selection cards without theme toggle',
         (WidgetTester tester) async {

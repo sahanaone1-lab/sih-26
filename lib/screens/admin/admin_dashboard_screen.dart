@@ -32,10 +32,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final _searchController = TextEditingController();
 
   late AdminSection _currentSection;
-  late Map<String, int> _stats;
+  Map<String, int> _stats = {
+    'total': 0,
+    'pending': 0,
+    'under_review': 0,
+    'verified': 0,
+    'rejected': 0,
+  };
   List<AdminHospitalDetail> _recentHospitals = [];
   List<AdminHospitalDetail> _filteredHospitals = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -51,23 +58,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    _stats = _service.getStatistics();
-    final allHospitals = await _service.getHospitals();
-
-    // Determine status filter based on current section
-    final statusFilter = _getStatusForSection(_currentSection);
-
-    final filtered = await _service.getHospitals(
-      status: statusFilter,
-      search: _searchController.text,
-    );
-
     setState(() {
-      _recentHospitals = allHospitals.take(5).toList();
-      _filteredHospitals = filtered;
-      _isLoading = false;
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    try {
+      final dashboardData = await _service.getDashboardStats();
+      _stats = dashboardData.toStatsMap();
+      _recentHospitals = dashboardData.recentRegistrations;
+
+      // Determine status filter based on current section
+      final statusFilter = _getStatusForSection(_currentSection);
+
+      final filtered = await _service.getHospitals(
+        status: statusFilter,
+        search: _searchController.text,
+      );
+
+      setState(() {
+        _filteredHospitals = filtered;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+        _stats = _service.getStatistics();
+      });
+    }
   }
 
   VerificationStatus? _getStatusForSection(AdminSection section) {
@@ -124,17 +144,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final isDesktop = screenWidth >= 900;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       appBar: isDesktop
           ? null
           : AppBar(
               backgroundColor: AppColors.background,
               elevation: 0,
+              centerTitle: true,
               title: Text(
                 _getSectionTitle(_currentSection),
                 style: const TextStyle(
                   color: AppColors.navyPrimary,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.bold,
                   fontSize: 18.0,
                 ),
               ),
@@ -189,6 +210,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildMainContent({required bool isDesktop}) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Container(
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(16.0),
+                border: Border.all(color: const Color(0xFFEF4444)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_rounded, color: Color(0xFFDC2626), size: 48.0),
+                  const SizedBox(height: 12.0),
+                  const Text(
+                    'Backend API Notice',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Color(0xFF991B1B)),
+                  ),
+                  const SizedBox(height: 6.0),
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13.0, color: Color(0xFF7F1D1D)),
+                  ),
+                  const SizedBox(height: 20.0),
+                  ElevatedButton.icon(
+                    onPressed: _loadData,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry Connection'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     if (_currentSection == AdminSection.overview) {

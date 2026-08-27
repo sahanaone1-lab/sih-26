@@ -5,6 +5,18 @@ const { VerificationStatus } = require('../utils/verificationStatus');
  * Controller for Admin Hospital Verification operations
  */
 
+const getDashboardStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getDashboardStats();
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getHospitals = async (req, res, next) => {
   try {
     const result = await adminService.listHospitals(req.query);
@@ -105,6 +117,7 @@ const rejectHospital = async (req, res, next) => {
 };
 
 module.exports = {
+  getDashboardStats,
   getHospitals,
   getPendingHospitals,
   getHospitalById,
