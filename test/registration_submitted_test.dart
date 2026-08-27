@@ -30,7 +30,7 @@ void main() {
 
     // Verify review note text
     expect(
-      find.text('Your hospital details will be verified before account activation.'),
+      find.text('Your hospital registration has been submitted successfully and is awaiting admin verification.'),
       findsOneWidget,
     );
 

@@ -18,28 +18,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: ThemeController.instance,
-      builder: (context, _) {
-        return MaterialApp(
-          title: 'MediKiosk - AYUSH Digital Health Platform',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeController.instance.themeMode,
-          initialRoute: '/',
-          routes: {
-            '/': (context) => const HomeScreen(),
-            '/home': (context) => const HomeScreen(),
-            '/splash': (context) => const SplashScreen(),
-            '/register': (context) => const HospitalRegistrationScreen(),
-            '/login': (context) => const LoginScreen(),
-            '/admin/login': (context) => const AdminLoginScreen(),
-            '/admin': (context) => const AdminDashboardScreen(),
-            '/admin/hospitals': (context) => const AdminHospitalListScreen(),
-            '/patient': (context) => const PatientIntakeScreen(),
-          },
-        );
+    return MaterialApp(
+      title: 'MediKiosk - AYUSH Digital Health Platform',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomeScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/splash': (context) => const SplashScreen(),
+        '/register': (context) => const HospitalRegistrationScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/admin/login': (context) => const AdminLoginScreen(),
+        '/admin': (context) => const AdminDashboardScreen(),
+        '/admin/hospitals': (context) => const AdminHospitalListScreen(),
+        '/patient': (context) => const PatientIntakeScreen(),
       },
     );
   }

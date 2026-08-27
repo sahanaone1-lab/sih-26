@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
 import '../../models/hospital_model.dart';
+import '../../services/admin_hospital_service.dart';
 import '../../widgets/ayush_widgets.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../auth/login_screen.dart';
@@ -100,7 +101,7 @@ class _HospitalRegistrationScreenState
     if ((_formKey.currentState?.validate() ?? false) && !_showDocUploadError) {
       final newHospital = AyushHospital(
         applicationId:
-            'AYUSH-HOSP-${DateTime.now().year}-${(10000 + DateTime.now().millisecond % 90000)}',
+            'AYUSH-HOSP-${DateTime.now().year}-${(10000 + DateTime.now().millisecondsSinceEpoch % 90000)}',
         hospitalName: _hospitalNameController.text.trim(),
         regNumber: _regNumberController.text.trim(),
         ayushId: _ayushIdController.text.trim(),
@@ -122,6 +123,10 @@ class _HospitalRegistrationScreenState
         submittedDate: '${DateTime.now().day} August ${DateTime.now().year}',
       );
 
+      // Save hospital registration data to shared AdminHospitalService (singleton source of truth)
+      AdminHospitalService().registerHospital(newHospital);
+
+      // Navigate to RegistrationSubmittedScreen (Pending Verification page) using replacement navigation
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) =>
@@ -661,7 +666,7 @@ class _HospitalRegistrationScreenState
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.of(context).pushReplacement(
+                                Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) => const LoginScreen(),
                                   ),

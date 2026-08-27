@@ -46,7 +46,6 @@ class RegistrationSubmittedScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false,
         title: const AyushHeaderLogo(iconSize: 22.0, fontSize: 18.0),
       ),
       body: SafeArea(
@@ -186,7 +185,7 @@ class RegistrationSubmittedScreen extends StatelessWidget {
                               SizedBox(width: 12.0),
                               Expanded(
                                 child: Text(
-                                  'Your hospital details will be verified before account activation.',
+                                  'Your hospital registration has been submitted successfully and is awaiting admin verification.',
                                   style: TextStyle(
                                     color: AppColors.navyPrimary,
                                     fontSize: 13.0,
@@ -246,14 +245,13 @@ class RegistrationSubmittedScreen extends StatelessWidget {
                     height: 52.0,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => LoginScreen(
                               initialRegistrationId: hospital.applicationId,
                               registeredHospital: hospital,
                             ),
                           ),
-                          (route) => false,
                         );
                       },
                       icon: const Icon(Icons.login_rounded, size: 20.0),

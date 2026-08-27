@@ -41,7 +41,6 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false,
         title: const AyushHeaderLogo(iconSize: 22.0, fontSize: 18.0),
       ),
       body: SafeArea(
@@ -218,13 +217,12 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                       height: 54.0,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.of(context).pushAndRemoveUntil(
+                          Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => AyushDashboardScreen(
                                 hospital: widget.hospital,
                               ),
                             ),
-                            (route) => false,
                           );
                         },
                         icon: const Icon(Icons.dashboard_rounded, size: 22.0),
@@ -314,7 +312,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                Navigator.of(context).pushReplacement(
+                                Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const HospitalRegistrationScreen(),
@@ -347,13 +345,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen> {
                   // Back to Login link
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const HospitalRegistrationScreen(),
-                        ),
-                        (route) => false,
-                      );
+                      Navigator.of(context).pop();
                     },
                     child: const Text(
                       'Return to Portal Home',

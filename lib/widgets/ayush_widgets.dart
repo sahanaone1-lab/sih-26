@@ -22,7 +22,6 @@ class AyushHeaderLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallMobile = screenWidth < 400;
     final effectiveFontSize = fontSize ?? (isSmallMobile ? 15.0 : 18.0);
@@ -38,7 +37,7 @@ class AyushHeaderLogo extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6.0),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
+                color: AppColors.saffronLight,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.saffronPrimary, width: 1.5),
               ),
@@ -66,7 +65,7 @@ class AyushHeaderLogo extends StatelessWidget {
                     TextSpan(
                       text: titleSuffix,
                       style: TextStyle(
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                        color: AppColors.navyPrimary,
                         fontSize: effectiveFontSize,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
@@ -84,7 +83,7 @@ class AyushHeaderLogo extends StatelessWidget {
             'Ministry of Ayush • MediKiosk Public Health Infrastructure',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              color: AppColors.textSecondary,
               fontSize: isSmallMobile ? 10.0 : 11.0,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.3,

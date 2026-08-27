@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
 import '../../models/hospital_model.dart';
+import '../../services/admin_hospital_service.dart';
 import '../../widgets/ayush_widgets.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../hospital/ayush_dashboard_screen.dart';
@@ -50,9 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin({bool forceVerified = true}) {
+  void _handleLogin({bool forceVerified = false}) {
     if (_formKey.currentState?.validate() ?? false) {
-      final hospital =
+      final inputQuery = _identifierController.text.trim();
+      final liveHospital = AdminHospitalService().findHospitalForLogin(inputQuery);
+
+      final hospital = liveHospital ??
           widget.registeredHospital ??
           AyushHospital.mock(
             status: forceVerified
@@ -61,13 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
           );
 
       if (hospital.verificationStatus == VerificationStatus.verified) {
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => AyushDashboardScreen(hospital: hospital),
           ),
         );
       } else {
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => VerificationStatusScreen(hospital: hospital),
           ),
@@ -326,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       height: 52.0,
                       child: ElevatedButton.icon(
-                        onPressed: () => _handleLogin(forceVerified: true),
+                        onPressed: () => _handleLogin(forceVerified: false),
                         icon: const Icon(Icons.login_rounded, size: 20.0),
                         label: const Text(
                           'Hospital Login',
@@ -417,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 50.0,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          Navigator.of(context).pushReplacement(
+                          Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) =>
                                   const HospitalRegistrationScreen(),

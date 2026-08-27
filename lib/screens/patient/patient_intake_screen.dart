@@ -1,8 +1,15 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
+import '../../models/patient_model.dart';
+import '../../services/abha_verification_service.dart';
+import '../../widgets/ayush_widgets.dart';
+import 'patient_otp_screen.dart';
 
-/// Interactive Patient Kiosk Intake & OPD Token Generation Screen.
+/// Step 1 of Patient Login: ABHA ID Entry & Verification.
+///
+/// The patient enters their 14-digit ABHA Health ID.
+/// On verify, the ID is checked against [AbhaVerificationService].
+/// If found, an OTP is generated and the user moves to [PatientOtpScreen].
 class PatientIntakeScreen extends StatefulWidget {
   const PatientIntakeScreen({super.key});
 
@@ -12,96 +19,101 @@ class PatientIntakeScreen extends StatefulWidget {
 
 class _PatientIntakeScreenState extends State<PatientIntakeScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _symptomsController = TextEditingController();
+  final _abhaController = TextEditingController();
 
-  String _selectedGender = 'Male';
-  String _selectedSpecialty = 'Ayurveda General OPD';
-  Map<String, dynamic>? _generatedToken;
+  bool _isVerifying = false;
+  String? _abhaError;
 
-  final List<String> _specialties = [
-    'Ayurveda General OPD',
-    'Panchakarma Speciality Clinic',
-    'Yoga & Lifestyle Therapy',
-    'Unani Medicine OPD',
-    'Siddha Wellness & Therapy',
-    'Homoeopathy Consultation',
-  ];
+  final _service = AbhaVerificationService.instance;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _ageController.dispose();
-    _phoneController.dispose();
-    _symptomsController.dispose();
+    _abhaController.dispose();
     super.dispose();
   }
 
-  void _fillSamplePatient() {
+  /// Auto-fills the first demo patient's ABHA ID for evaluators.
+  void _autoFill() {
     setState(() {
-      _nameController.text = 'Aarav Patel';
-      _ageController.text = '38';
-      _phoneController.text = '9876543210';
-      _selectedGender = 'Male';
-      _selectedSpecialty = 'Ayurveda General OPD';
-      _symptomsController.text = 'Chronic digestive issues, fatigue, and mild joint stiffness';
+      _abhaController.text = AbhaVerificationService.demoPatients.first.abhaId;
+      _abhaError = null;
     });
   }
 
-  void _generateToken() {
+  /// Validates ABHA format: 14 digits, optionally separated by dashes.
+  String? _validateAbhaFormat(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter your ABHA Health ID.';
+    }
+    final stripped = value.replaceAll('-', '').trim();
+    if (stripped.length != 14 || !RegExp(r'^\d{14}$').hasMatch(stripped)) {
+      return 'Enter a valid 14-digit ABHA ID (e.g. 14-8912-3401-7752).';
+    }
+    return null;
+  }
+
+  Future<void> _handleVerifyAbha() async {
+    setState(() => _abhaError = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final tokenNum = 10 + Random().nextInt(80);
-    final roomNum = 1 + Random().nextInt(6);
-    final waitMinutes = (tokenNum % 7 + 2) * 5;
+    setState(() => _isVerifying = true);
+    // Simulate network latency for a realistic demo feel
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
 
-    setState(() {
-      _generatedToken = {
-        'tokenNumber': 'AY-$tokenNum',
-        'patientName': _nameController.text.trim(),
-        'specialty': _selectedSpecialty,
-        'room': 'OPD Room $roomNum',
-        'estimatedWait': '$waitMinutes mins',
-        'generatedAt': 'Today, ${TimeOfDay.now().format(context)}',
-      };
-    });
+    final abhaId = _abhaController.text.trim();
+    final PatientModel? patient = _service.verifyAbhaId(abhaId);
+
+    if (patient == null) {
+      setState(() {
+        _isVerifying = false;
+        _abhaError = 'ABHA ID not found or invalid. Try one of the demo IDs.';
+      });
+      return;
+    }
+
+    // ABHA verified — initiate OTP and proceed to OTP screen
+    _service.generateOtp(patient);
+    setState(() => _isVerifying = false);
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PatientOtpScreen(
+          patient: patient,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.background,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary, size: 20.0),
+          icon: const Icon(Icons.arrow_back_ios_rounded,
+              color: AppColors.navyPrimary, size: 20.0),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Patient Kiosk Intake',
-          style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 18.0,
-          ),
-        ),
+        title: const AyushHeaderLogo(iconSize: 20.0, fontSize: 16.0),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: TextButton.icon(
-              onPressed: _fillSamplePatient,
+              onPressed: _autoFill,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.saffronDark,
-                backgroundColor: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                backgroundColor: AppColors.saffronLight,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0)),
               ),
               icon: const Icon(Icons.auto_fix_high_rounded, size: 16.0),
-              label: const Text('Auto Fill', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+              label: const Text('Auto Fill',
+                  style:
+                      TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -110,10 +122,177 @@ class _PatientIntakeScreenState extends State<PatientIntakeScreen> {
         child: Center(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: _generatedToken != null ? _buildTokenSlip(isDark) : _buildIntakeForm(isDark),
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Icon
+                    Center(
+                      child: Container(
+                        width: 76.0,
+                        height: 76.0,
+                        decoration: const BoxDecoration(
+                          color: AppColors.greenLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.health_and_safety_rounded,
+                          color: AppColors.greenSuccess,
+                          size: 40.0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+
+                    // Title & Step Indicator
+                    const Text(
+                      'Patient Portal Login',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.navyPrimary,
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6.0),
+                    const Text(
+                      'Step 1 of 2 — Enter your ABHA Health ID',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13.5),
+                    ),
+                    const SizedBox(height: 8.0),
+
+                    // Step progress
+                    _buildStepIndicator(currentStep: 1),
+                    const SizedBox(height: 28.0),
+
+                    // ABHA Error Banner
+                    if (_abhaError != null) ...[
+                      _buildErrorBanner(_abhaError!),
+                      const SizedBox(height: 16.0),
+                    ],
+
+                    // ABHA ID field label
+                    const Text(
+                      'ABHA Health ID',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.0,
+                        color: AppColors.navyPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      controller: _abhaController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) {
+                        if (_abhaError != null) {
+                          setState(() => _abhaError = null);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'e.g. 14-8912-3401-7752',
+                        prefixIcon: const Icon(Icons.badge_rounded,
+                            color: AppColors.greenSuccess),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(
+                              color: Color(0xFFEF4444), width: 1.5),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: const BorderSide(
+                              color: Color(0xFFEF4444), width: 1.5),
+                        ),
+                      ),
+                      validator: _validateAbhaFormat,
+                    ),
+                    const SizedBox(height: 8.0),
+
+                    // ABHA hint
+                    Row(
+                      children: const [
+                        Icon(Icons.info_outline_rounded,
+                            size: 13.0, color: AppColors.textMuted),
+                        SizedBox(width: 5.0),
+                        Flexible(
+                          child: Text(
+                            'Your 14-digit ABHA ID is issued by the Ayushman Bharat Digital Mission.',
+                            style: TextStyle(
+                                fontSize: 11.5, color: AppColors.textMuted),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28.0),
+
+                    // Verify ABHA ID Button
+                    SizedBox(
+                      height: 52.0,
+                      child: ElevatedButton.icon(
+                        onPressed: _isVerifying ? null : _handleVerifyAbha,
+                        icon: _isVerifying
+                            ? const SizedBox(
+                                width: 18.0,
+                                height: 18.0,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.0, color: Colors.white),
+                              )
+                            : const Icon(Icons.verified_rounded, size: 20.0),
+                        label: Text(
+                          _isVerifying
+                              ? 'Verifying ABHA ID...'
+                              : 'Verify ABHA ID',
+                          style: const TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.greenSuccess,
+                          foregroundColor: Colors.white,
+                          elevation: 2.0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24.0),
+
+                    // Demo Quick-Select IDs for evaluators
+                    _buildDemoIdPanel(),
+                    const SizedBox(height: 32.0),
+
+                    // Footer
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.verified_user_rounded,
+                            size: 15.0, color: AppColors.greenSuccess),
+                        SizedBox(width: 6.0),
+                        Flexible(
+                          child: Text(
+                            'Ministry of Ayush • ABDM Demo Verification System',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11.0,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -121,266 +300,157 @@ class _PatientIntakeScreenState extends State<PatientIntakeScreen> {
     );
   }
 
-  Widget _buildIntakeForm(bool isDark) {
-    return Card(
-      color: isDark ? AppColors.darkSurface : AppColors.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        side: BorderSide(color: isDark ? AppColors.darkSurfaceBorder : AppColors.surfaceBorder),
+  // ── Helper Widgets ──────────────────────────────────────────────────────────
+
+  Widget _buildStepIndicator({required int currentStep}) {
+    return Row(
+      children: [
+        _stepDot(label: '1', label2: 'ABHA ID', active: currentStep == 1),
+        Expanded(
+          child: Container(
+            height: 2.0,
+            color: currentStep >= 2
+                ? AppColors.greenSuccess
+                : AppColors.surfaceBorder,
+          ),
+        ),
+        _stepDot(label: '2', label2: 'OTP', active: currentStep == 2),
+        Expanded(
+          child: Container(
+            height: 2.0,
+            color: currentStep >= 3
+                ? AppColors.greenSuccess
+                : AppColors.surfaceBorder,
+          ),
+        ),
+        _stepDot(label: '✓', label2: 'Dashboard', active: currentStep == 3),
+      ],
+    );
+  }
+
+  Widget _stepDot(
+      {required String label,
+      required String label2,
+      required bool active}) {
+    return Column(
+      children: [
+        Container(
+          width: 28.0,
+          height: 28.0,
+          decoration: BoxDecoration(
+            color: active ? AppColors.greenSuccess : AppColors.surfaceBorder,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(label,
+                style: TextStyle(
+                    color: active ? Colors.white : AppColors.textMuted,
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 4.0),
+        Text(label2,
+            style: TextStyle(
+                fontSize: 9.5,
+                color:
+                    active ? AppColors.greenSuccess : AppColors.textMuted,
+                fontWeight:
+                    active ? FontWeight.bold : FontWeight.normal)),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner(String message) {
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10.0),
+        border: Border.all(color: const Color(0xFFEF4444)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.greenLight,
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: const Icon(Icons.touch_app_rounded, color: AppColors.greenSuccess, size: 24.0),
-                  ),
-                  const SizedBox(width: 12.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Self-Service OPD Check-in',
-                          style: TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Enter patient details to generate your queue token',
-                          style: TextStyle(fontSize: 12.0, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 32.0),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              color: Color(0xFFDC2626), size: 20.0),
+          const SizedBox(width: 10.0),
+          Expanded(
+            child: Text(message,
+                style: const TextStyle(
+                    color: Color(0xFF991B1B),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Full Name
-              Text('Patient Full Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-              const SizedBox(height: 6.0),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(hintText: 'e.g. Aarav Patel', prefixIcon: Icon(Icons.person_outline_rounded)),
-                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter patient name' : null,
-              ),
-              const SizedBox(height: 16.0),
-
-              // Age & Gender Row
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Age (Years)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-                        const SizedBox(height: 6.0),
-                        TextFormField(
-                          controller: _ageController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(hintText: 'e.g. 38', prefixIcon: Icon(Icons.cake_outlined)),
-                          validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Gender', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-                        const SizedBox(height: 6.0),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedGender,
-                          decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0)),
-                          items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                          onChanged: (val) => setState(() => _selectedGender = val!),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16.0),
-
-              // Mobile Number
-              Text('Mobile Number (for SMS token updates)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-              const SizedBox(height: 6.0),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(hintText: '9876543210', prefixIcon: Icon(Icons.phone_outlined)),
-                validator: (val) => (val == null || val.trim().length < 10) ? 'Enter valid 10-digit number' : null,
-              ),
-              const SizedBox(height: 16.0),
-
-              // Specialty Department
-              Text('AYUSH Speciality Department', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-              const SizedBox(height: 6.0),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSpecialty,
-                decoration: const InputDecoration(prefixIcon: Icon(Icons.spa_outlined, color: AppColors.saffronPrimary)),
-                items: _specialties.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13.0)))).toList(),
-                onChanged: (val) => setState(() => _selectedSpecialty = val!),
-              ),
-              const SizedBox(height: 16.0),
-
-              // Primary Symptoms
-              Text('Primary Health Symptoms / Concerns', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary)),
-              const SizedBox(height: 6.0),
-              TextFormField(
-                controller: _symptomsController,
-                maxLines: 2,
-                decoration: const InputDecoration(hintText: 'Briefly describe reason for consultation...'),
-                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please describe symptoms' : null,
-              ),
-              const SizedBox(height: 24.0),
-
-              // Generate Token Button
-              ElevatedButton.icon(
-                onPressed: _generateToken,
-                icon: const Icon(Icons.confirmation_number_rounded),
-                label: const Text('Generate OPD Queue Token', style: TextStyle(fontSize: 15.0)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.saffronPrimary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                ),
+  Widget _buildDemoIdPanel() {
+    return Container(
+      padding: const EdgeInsets.all(14.0),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.dataset_rounded,
+                  size: 15.0, color: AppColors.saffronDark),
+              SizedBox(width: 6.0),
+              Text(
+                'DEMO — Available ABHA IDs',
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.saffronDark),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTokenSlip(bool isDark) {
-    final t = _generatedToken!;
-    return Card(
-      color: isDark ? AppColors.darkSurface : AppColors.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        side: const BorderSide(color: AppColors.greenSuccess, width: 2.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(28.0),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: const BoxDecoration(
-                color: AppColors.greenLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle_rounded, color: AppColors.greenSuccess, size: 48.0),
-            ),
-            const SizedBox(height: 16.0),
-            const Text(
-              'OPD Check-in Successful!',
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.w900, color: AppColors.greenSuccess),
-            ),
-            const SizedBox(height: 4.0),
-            Text(
-              'Your registration token has been dispatched to queue display.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.0, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-            ),
-            const Divider(height: 32.0),
-
-            // Token Number Highlight Box
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20.0),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
-                borderRadius: BorderRadius.circular(16.0),
-                border: Border.all(color: AppColors.saffronPrimary.withValues(alpha: 0.5)),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'TOKEN NUMBER',
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: AppColors.saffronDark),
-                  ),
-                  const SizedBox(height: 4.0),
-                  Text(
-                    t['tokenNumber'],
-                    style: const TextStyle(fontSize: 44.0, fontWeight: FontWeight.w900, color: AppColors.saffronDark),
-                  ),
-                  Text(
-                    'Est. Wait: ${t['estimatedWait']}',
-                    style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w700, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20.0),
-
-            _buildSlipRow('Patient Name', t['patientName'], isDark),
-            _buildSlipRow('Department', t['specialty'], isDark),
-            _buildSlipRow('Assigned Room', t['room'], isDark, isHighlight: true),
-            _buildSlipRow('Time Generated', t['generatedAt'], isDark),
-
-            const Divider(height: 32.0),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => _generatedToken = null),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Next Patient'),
+          const SizedBox(height: 10.0),
+          ...AbhaVerificationService.demoPatients.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8.0),
+                  onTap: () {
+                    setState(() {
+                      _abhaController.text = p.abhaId;
+                      _abhaError = null;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 7.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: AppColors.surfaceBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline_rounded,
+                            size: 14.0, color: AppColors.greenSuccess),
+                        const SizedBox(width: 8.0),
+                        Expanded(
+                          child: Text(
+                            '${p.name}  •  ${p.abhaId}',
+                            style: const TextStyle(
+                                fontSize: 12.0,
+                                color: AppColors.navyPrimary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 16.0, color: AppColors.textMuted),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Printing OPD token slip to receipt printer...')),
-                      );
-                    },
-                    icon: const Icon(Icons.print_rounded),
-                    label: const Text('Print Slip'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlipRow(String label, String value, bool isDark, {bool isHighlight = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 13.0, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.0,
-              fontWeight: isHighlight ? FontWeight.w900 : FontWeight.w700,
-              color: isHighlight ? AppColors.greenSuccess : (isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary),
-            ),
-          ),
+              )),
         ],
       ),
     );

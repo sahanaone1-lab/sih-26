@@ -51,7 +51,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         (password == 'ayushAdmin2026' || password == 'password123' || password == 'admin123')) {
       setState(() => _isLoading = false);
       if (mounted) {
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
         );
       }
@@ -65,15 +65,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.surface,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary, size: 20.0),
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.navyPrimary, size: 20.0),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -83,7 +81,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               onPressed: _fillMockAdmin,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.saffronDark,
-                backgroundColor: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
+                backgroundColor: AppColors.saffronLight,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
               ),
               icon: const Icon(Icons.auto_fix_high_rounded, size: 16.0),
@@ -103,10 +101,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Card(
-                color: isDark ? AppColors.darkSurface : AppColors.background,
+                color: AppColors.background,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20.0),
-                  side: BorderSide(color: isDark ? AppColors.darkSurfaceBorder : AppColors.surfaceBorder),
+                  side: const BorderSide(color: AppColors.surfaceBorder),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(28.0),
@@ -121,7 +119,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             width: 68.0,
                             height: 68.0,
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
+                              color: AppColors.saffronLight,
                               shape: BoxShape.circle,
                               border: Border.all(color: AppColors.saffronPrimary, width: 2.0),
                             ),
@@ -135,22 +133,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         const SizedBox(height: 16.0),
 
                         // Title & Subtitle
-                        Text(
+                        const Text(
                           'AYUSH Admin Central',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                            color: AppColors.navyPrimary,
                             fontSize: 22.0,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.3,
                           ),
                         ),
                         const SizedBox(height: 4.0),
-                        Text(
+                        const Text(
                           'Authorized Personnel & Verification Authority Only',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            color: AppColors.textSecondary,
                             fontSize: 12.0,
                           ),
                         ),
@@ -182,12 +180,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         ],
 
                         // Admin Email Input
-                        Text(
+                        const Text(
                           'Official Admin Email / Employee ID',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13.0,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                            color: AppColors.navyPrimary,
                           ),
                         ),
                         const SizedBox(height: 6.0),
@@ -208,12 +206,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         const SizedBox(height: 18.0),
 
                         // Admin Password Input
-                        Text(
+                        const Text(
                           'Security Passkey / Password',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13.0,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                            color: AppColors.navyPrimary,
                           ),
                         ),
                         const SizedBox(height: 6.0),
@@ -270,14 +268,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(12.0),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSurfaceBorder.withValues(alpha: 0.5) : AppColors.surface,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(10.0),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            children: const [
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.info_outline_rounded, size: 14.0, color: AppColors.saffronDark),
                                   SizedBox(width: 6.0),
                                   Text(
@@ -286,12 +284,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4.0),
+                              SizedBox(height: 4.0),
                               Text(
                                 'Email: admin@ayush.gov.in\nPasskey: ayushAdmin2026',
                                 style: TextStyle(
                                   fontSize: 11.0,
-                                  color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
+                                  color: AppColors.textSecondary,
                                   height: 1.3,
                                 ),
                               ),

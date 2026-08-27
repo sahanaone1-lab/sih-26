@@ -13,46 +13,45 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 900;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
-      appBar: _buildAppBar(context, isDark, isDesktop),
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(context, isDesktop),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
             // Hero Section
-            _buildHeroSection(context, isDark, isDesktop),
+            _buildHeroSection(context, isDesktop),
 
             // Statistics Ribbon
-            _buildMetricsRibbon(context, isDark, isDesktop),
+            _buildMetricsRibbon(context, isDesktop),
 
             const SizedBox(height: 32.0),
 
             // Role Selection Section (Patient, Doctor/Hospital, Admin)
-            _buildRoleSelectionSection(context, isDark, isDesktop),
+            _buildRoleSelectionSection(context, isDesktop),
 
             const SizedBox(height: 48.0),
 
             // AYUSH Systems Section
-            _buildAyushSystemsSection(context, isDark, isDesktop),
+            _buildAyushSystemsSection(context, isDesktop),
 
             const SizedBox(height: 60.0),
 
             // Security & Initiative Footer
-            _buildFooter(context, isDark),
+            _buildFooter(context),
           ],
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, bool isDark, bool isDesktop) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, bool isDesktop) {
     return AppBar(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.background,
+      backgroundColor: AppColors.background,
       elevation: 0,
       titleSpacing: isDesktop ? 32.0 : 16.0,
       title: const AyushHeaderLogo(
@@ -60,16 +59,6 @@ class HomeScreen extends StatelessWidget {
         titleSuffix: 'AYUSH PLATFORM',
       ),
       actions: [
-        // Theme Toggle (Light / Dark)
-        IconButton(
-          tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-          icon: Icon(
-            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-            color: isDark ? AppColors.saffronPrimary : AppColors.navyPrimary,
-          ),
-          onPressed: () => ThemeController.instance.toggleTheme(context),
-        ),
-
         // Quick Portal Access Dropdown / Button
         Padding(
           padding: EdgeInsets.only(right: isDesktop ? 32.0 : 12.0),
@@ -89,13 +78,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildHeroSection(BuildContext context, bool isDesktop) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64.0 : 20.0, vertical: isDesktop ? 56.0 : 36.0),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.surface,
-        border: Border(bottom: BorderSide(color: isDark ? AppColors.darkSurfaceBorder : AppColors.surfaceBorder)),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.surfaceBorder)),
       ),
       child: Center(
         child: ConstrainedBox(
@@ -106,7 +95,7 @@ class HomeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBackground : Colors.white,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(30.0),
                   border: Border.all(color: AppColors.saffronPrimary.withValues(alpha: 0.4)),
                 ),
@@ -119,13 +108,13 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(width: 4.0),
                     Container(width: 8.0, height: 8.0, decoration: const BoxDecoration(color: AppColors.greenSuccess, shape: BoxShape.circle)),
                     const SizedBox(width: 10.0),
-                    Text(
+                    const Text(
                       'SMART INDIA HACKATHON 2026 • MINISTRY OF AYUSH',
                       style: TextStyle(
                         fontSize: 11.0,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                        color: AppColors.navyPrimary,
                       ),
                     ),
                   ],
@@ -140,7 +129,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isDesktop ? 36.0 : 24.0,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                  color: AppColors.navyPrimary,
                   height: 1.25,
                 ),
               ),
@@ -154,7 +143,7 @@ class HomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: isDesktop ? 15.0 : 13.0,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -166,7 +155,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricsRibbon(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildMetricsRibbon(BuildContext context, bool isDesktop) {
     final metrics = [
       {'val': '75,000+', 'label': 'Kiosk Patient Check-ins'},
       {'val': '1,200+', 'label': 'Verified AYUSH Hospitals'},
@@ -176,7 +165,7 @@ class HomeScreen extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: isDark ? AppColors.darkBackground : AppColors.navyPrimary,
+      color: AppColors.navyPrimary,
       padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 16.0),
       child: Center(
         child: ConstrainedBox(
@@ -214,7 +203,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleSelectionSection(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildRoleSelectionSection(BuildContext context, bool isDesktop) {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1100),
@@ -223,18 +212,18 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Choose Your Portal',
                 style: TextStyle(
                   fontSize: 22.0,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                  color: AppColors.navyPrimary,
                 ),
               ),
               const SizedBox(height: 6.0),
-              Text(
+              const Text(
                 'Select your role to access tailored OPD tools, healthcare consoles, or verification dashboards.',
-                style: TextStyle(fontSize: 13.0, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24.0),
 
@@ -243,20 +232,20 @@ class HomeScreen extends StatelessWidget {
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _buildPatientRoleCard(context, isDark)),
+                        Expanded(child: _buildPatientRoleCard(context)),
                         const SizedBox(width: 20.0),
-                        Expanded(child: _buildHospitalRoleCard(context, isDark)),
+                        Expanded(child: _buildHospitalRoleCard(context)),
                         const SizedBox(width: 20.0),
-                        Expanded(child: _buildAdminRoleCard(context, isDark)),
+                        Expanded(child: _buildAdminRoleCard(context)),
                       ],
                     )
                   : Column(
                       children: [
-                        _buildPatientRoleCard(context, isDark),
+                        _buildPatientRoleCard(context),
                         const SizedBox(height: 16.0),
-                        _buildHospitalRoleCard(context, isDark),
+                        _buildHospitalRoleCard(context),
                         const SizedBox(height: 16.0),
-                        _buildAdminRoleCard(context, isDark),
+                        _buildAdminRoleCard(context),
                       ],
                     ),
             ],
@@ -266,19 +255,18 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPatientRoleCard(BuildContext context, bool isDark) {
+  Widget _buildPatientRoleCard(BuildContext context) {
     return _buildPortalCard(
       context: context,
-      isDark: isDark,
       badgeText: 'PATIENT ACCESS',
       badgeColor: AppColors.greenSuccess,
-      badgeBgColor: isDark ? AppColors.darkGreenLight : AppColors.greenLight,
+      badgeBgColor: AppColors.greenLight,
       icon: Icons.people_alt_rounded,
       iconColor: AppColors.greenSuccess,
-      title: 'Patient & Kiosk Intake',
-      description: 'Generate real-time OPD queue tokens, voice-assisted intake, symptom triage, and medical records access.',
-      primaryButtonText: 'Patient Check-in',
-      primaryButtonIcon: Icons.confirmation_number_rounded,
+      title: 'Patient Portal',
+      description: 'Securely access the Patient Portal using your ABHA ID. View your health records, appointments, and more.',
+      primaryButtonText: 'Patient Login',
+      primaryButtonIcon: Icons.badge_rounded,
       primaryButtonColor: AppColors.greenSuccess,
       onPrimaryTap: () {
         Navigator.of(context).push(
@@ -288,13 +276,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHospitalRoleCard(BuildContext context, bool isDark) {
+  Widget _buildHospitalRoleCard(BuildContext context) {
     return _buildPortalCard(
       context: context,
-      isDark: isDark,
       badgeText: 'HOSPITAL / DOCTOR',
       badgeColor: AppColors.saffronDark,
-      badgeBgColor: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
+      badgeBgColor: AppColors.saffronLight,
       icon: Icons.local_hospital_rounded,
       iconColor: AppColors.saffronPrimary,
       title: 'Doctor & Hospital Portal',
@@ -316,20 +303,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAdminRoleCard(BuildContext context, bool isDark) {
+  Widget _buildAdminRoleCard(BuildContext context) {
     return _buildPortalCard(
       context: context,
-      isDark: isDark,
       badgeText: 'REGULATORY / ADMIN',
       badgeColor: const Color(0xFF3B82F6),
-      badgeBgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+      badgeBgColor: const Color(0xFFEFF6FF),
       icon: Icons.admin_panel_settings_rounded,
       iconColor: const Color(0xFF2563EB),
       title: 'Admin Verification Portal',
       description: 'Official Ministry console for hospital verification, HFR/NABH ID checks, and audit history logging.',
       primaryButtonText: 'Admin Login 🔒',
       primaryButtonIcon: Icons.lock_open_rounded,
-      primaryButtonColor: isDark ? const Color(0xFF2563EB) : AppColors.navyPrimary,
+      primaryButtonColor: AppColors.navyPrimary,
       onPrimaryTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
@@ -340,7 +326,6 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildPortalCard({
     required BuildContext context,
-    required bool isDark,
     required String badgeText,
     required Color badgeColor,
     required Color badgeBgColor,
@@ -358,14 +343,14 @@ class HomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: isDark ? AppColors.darkSurfaceBorder : AppColors.surfaceBorder),
-        boxShadow: [
+        border: Border.all(color: AppColors.surfaceBorder),
+        boxShadow: const [
           BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.3) : AppColors.cardShadow,
+            color: AppColors.cardShadow,
             blurRadius: 16.0,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -399,18 +384,18 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 20.0),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18.0,
               fontWeight: FontWeight.w800,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+              color: AppColors.navyPrimary,
             ),
           ),
           const SizedBox(height: 8.0),
           Text(
             description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12.5,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              color: AppColors.textSecondary,
               height: 1.45,
             ),
           ),
@@ -446,7 +431,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAyushSystemsSection(BuildContext context, bool isDark, bool isDesktop) {
+  Widget _buildAyushSystemsSection(BuildContext context, bool isDesktop) {
     final systems = [
       {'name': 'Ayurveda', 'desc': 'Holistic healing & herbal science', 'icon': Icons.spa_rounded},
       {'name': 'Yoga & Naturopathy', 'desc': 'Mind-body balance & natural therapy', 'icon': Icons.self_improvement_rounded},
@@ -464,18 +449,18 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Supported AYUSH Medical Disciplines',
                 style: TextStyle(
                   fontSize: 20.0,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                  color: AppColors.navyPrimary,
                 ),
               ),
               const SizedBox(height: 6.0),
-              Text(
+              const Text(
                 'Comprehensive support for the 6 national streams recognized by the Ministry of Ayush.',
-                style: TextStyle(fontSize: 13.0, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 20.0),
               LayoutBuilder(
@@ -492,16 +477,16 @@ class HomeScreen extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : AppColors.surface,
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(14.0),
-                          border: Border.all(color: isDark ? AppColors.darkSurfaceBorder : AppColors.surfaceBorder),
+                          border: Border.all(color: AppColors.surfaceBorder),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10.0),
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.darkSaffronLight : AppColors.saffronLight,
+                                color: AppColors.saffronLight,
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                               child: Icon(sys['icon'] as IconData, color: AppColors.saffronDark, size: 22.0),
@@ -514,18 +499,18 @@ class HomeScreen extends StatelessWidget {
                                 children: [
                                   Text(
                                     sys['name'] as String,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 14.0,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.navyPrimary,
+                                      color: AppColors.navyPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 2.0),
                                   Text(
                                     sys['desc'] as String,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 11.0,
-                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      color: AppColors.textSecondary,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -547,12 +532,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context, bool isDark) {
+  Widget _buildFooter(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF040D1A) : AppColors.navyDark,
+      decoration: const BoxDecoration(
+        color: AppColors.navyDark,
       ),
       child: Column(
         children: [
@@ -597,8 +582,8 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 16.0),
                 ListTile(
                   leading: const Icon(Icons.people_alt_rounded, color: AppColors.greenSuccess),
-                  title: const Text('Patient Kiosk Check-in'),
-                  subtitle: const Text('Generate OPD token & symptom intake'),
+                  title: const Text('Patient Portal'),
+                  subtitle: const Text('Login with ABHA ID'),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => const PatientIntakeScreen()));

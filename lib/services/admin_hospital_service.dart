@@ -381,4 +381,118 @@ class AdminHospitalService {
 
     return hospital;
   }
+
+  /// Registers a newly submitted hospital into the shared state repository.
+  /// Prevents duplicate entries and ensures it appears at the top of pending reviews.
+  void registerHospital(AyushHospital hospital) {
+    final existingIndex = _hospitals.indexWhere(
+      (h) =>
+          h.applicationId == hospital.applicationId ||
+          (hospital.regNumber.isNotEmpty && h.registrationNumber.toLowerCase() == hospital.regNumber.toLowerCase()) ||
+          (hospital.officialEmail.isNotEmpty && h.officialEmail.toLowerCase() == hospital.officialEmail.toLowerCase()),
+    );
+
+    final detail = AdminHospitalDetail(
+      id: hospital.applicationId,
+      applicationId: hospital.applicationId,
+      facilityName: hospital.hospitalName,
+      facilityType: hospital.hospitalType,
+      ayushSystem: 'Ayurveda',
+      state: hospital.state,
+      district: hospital.district,
+      address: hospital.address,
+      pinCode: null,
+      officialEmail: hospital.officialEmail,
+      officialPhone: hospital.phoneNumber,
+      registrationNumber: hospital.regNumber,
+      ayushId: hospital.ayushId.isNotEmpty ? hospital.ayushId : null,
+      hfrId: null,
+      verificationStatus: hospital.verificationStatus,
+      createdAt: hospital.submittedDate.isNotEmpty ? hospital.submittedDate : 'Today',
+      authorizedOfficials: [
+        HospitalOfficial(
+          id: 'off-${hospital.applicationId}',
+          hospitalId: hospital.applicationId,
+          fullName: hospital.authorizedPersonName,
+          designation: hospital.authorizedPersonDesignation,
+          officialEmail: hospital.officialEmail,
+          officialPhone: hospital.phoneNumber,
+          isPrimary: true,
+        ),
+      ],
+      documents: [
+        if (hospital.regCertFileName != null && hospital.regCertFileName!.isNotEmpty)
+          HospitalDocument(
+            id: 'doc-${hospital.applicationId}-1',
+            hospitalId: hospital.applicationId,
+            documentType: 'registration_certificate',
+            storagePath: 'certificates/${hospital.regCertFileName}',
+            originalFilename: hospital.regCertFileName!,
+            mimeType: 'application/pdf',
+            documentStatus: 'pending',
+            uploadedAt: 'Today',
+          ),
+        if (hospital.authorizedPersonIdFileName != null && hospital.authorizedPersonIdFileName!.isNotEmpty)
+          HospitalDocument(
+            id: 'doc-${hospital.applicationId}-2',
+            hospitalId: hospital.applicationId,
+            documentType: 'authorized_official_id',
+            storagePath: 'ids/${hospital.authorizedPersonIdFileName}',
+            originalFilename: hospital.authorizedPersonIdFileName!,
+            mimeType: 'application/pdf',
+            documentStatus: 'pending',
+            uploadedAt: 'Today',
+          ),
+      ],
+      verificationHistory: [
+        VerificationHistoryItem(
+          id: 'hist-${DateTime.now().millisecondsSinceEpoch}',
+          hospitalId: hospital.applicationId,
+          previousStatus: null,
+          newStatus: 'pending',
+          action: 'registration_submitted',
+          notes: 'Hospital registration submitted via Hospital Portal',
+          createdAt: 'Just now',
+        ),
+      ],
+    );
+
+    if (existingIndex != -1) {
+      _hospitals[existingIndex] = detail;
+    } else {
+      _hospitals.insert(0, detail);
+    }
+  }
+
+  /// Searches for a hospital in the shared state repository by applicationId, officialEmail, regNumber, or ayushId.
+  AyushHospital? findHospitalForLogin(String query) {
+    if (query.trim().isEmpty) return null;
+    final q = query.trim().toLowerCase();
+
+    for (final h in _hospitals) {
+      if (h.applicationId.toLowerCase() == q ||
+          h.officialEmail.toLowerCase() == q ||
+          h.registrationNumber.toLowerCase() == q ||
+          (h.ayushId != null && h.ayushId!.toLowerCase() == q)) {
+        return AyushHospital(
+          applicationId: h.applicationId,
+          hospitalName: h.facilityName,
+          regNumber: h.registrationNumber,
+          ayushId: h.ayushId ?? '',
+          address: h.address,
+          state: h.state,
+          district: h.district,
+          hospitalType: h.facilityType,
+          authorizedPersonName: h.authorizedOfficials.isNotEmpty ? h.authorizedOfficials.first.fullName : '',
+          authorizedPersonDesignation: h.authorizedOfficials.isNotEmpty ? h.authorizedOfficials.first.designation : '',
+          officialEmail: h.officialEmail,
+          phoneNumber: h.officialPhone,
+          password: 'password123',
+          verificationStatus: h.verificationStatus,
+          submittedDate: h.createdAt,
+        );
+      }
+    }
+    return null;
+  }
 }

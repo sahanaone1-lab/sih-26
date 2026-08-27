@@ -3,14 +3,25 @@ import '../../app/theme.dart';
 import '../../models/admin_hospital_model.dart';
 import '../../models/hospital_model.dart';
 import '../../services/admin_hospital_service.dart';
+import '../../widgets/admin_sidebar.dart';
 import '../../widgets/admin_widgets.dart';
 import 'admin_hospital_details_screen.dart';
-import 'admin_hospital_list_screen.dart';
 
-/// Admin Dashboard Screen for MediKiosk / AYUSH Verification Portal.
-/// Responsive layout supporting Desktop (sidebar + wide grid), Tablet, and Mobile.
+/// Master Admin Dashboard Screen for MediKiosk / AYUSH Verification Portal.
+///
+/// Features a single persistent left sidebar across all 5 main sections:
+///   1. Overview Dashboard
+///   2. Pending Reviews
+///   3. Hospital Directory
+///   4. Verified Facilities
+///   5. Rejected Applications
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({super.key});
+  final AdminSection initialSection;
+
+  const AdminDashboardScreen({
+    super.key,
+    this.initialSection = AdminSection.overview,
+  });
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
@@ -18,39 +29,90 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final _service = AdminHospitalService();
+  final _searchController = TextEditingController();
+
+  late AdminSection _currentSection;
   late Map<String, int> _stats;
   List<AdminHospitalDetail> _recentHospitals = [];
+  List<AdminHospitalDetail> _filteredHospitals = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _currentSection = widget.initialSection;
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     _stats = _service.getStatistics();
-    final hospitals = await _service.getHospitals();
+    final allHospitals = await _service.getHospitals();
+
+    // Determine status filter based on current section
+    final statusFilter = _getStatusForSection(_currentSection);
+
+    final filtered = await _service.getHospitals(
+      status: statusFilter,
+      search: _searchController.text,
+    );
+
     setState(() {
-      _recentHospitals = hospitals.take(5).toList();
+      _recentHospitals = allHospitals.take(5).toList();
+      _filteredHospitals = filtered;
       _isLoading = false;
     });
+  }
+
+  VerificationStatus? _getStatusForSection(AdminSection section) {
+    switch (section) {
+      case AdminSection.pending:
+        return VerificationStatus.pending;
+      case AdminSection.verified:
+        return VerificationStatus.verified;
+      case AdminSection.rejected:
+        return VerificationStatus.rejected;
+      case AdminSection.directory:
+      case AdminSection.overview:
+        return null;
+    }
+  }
+
+  void _onSectionSelected(AdminSection section) {
+    setState(() {
+      _currentSection = section;
+      _searchController.clear();
+    });
+    _loadData();
+  }
+
+  void _onStatusFilterChanged(VerificationStatus? status) {
+    setState(() {
+      if (status == null) {
+        _currentSection = AdminSection.directory;
+      } else if (status == VerificationStatus.pending) {
+        _currentSection = AdminSection.pending;
+      } else if (status == VerificationStatus.verified) {
+        _currentSection = AdminSection.verified;
+      } else if (status == VerificationStatus.rejected) {
+        _currentSection = AdminSection.rejected;
+      } else if (status == VerificationStatus.under_review) {
+        _currentSection = AdminSection.directory;
+      }
+    });
+    _loadData();
   }
 
   void _navigateToDetails(AdminHospitalDetail hospital) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AdminHospitalDetailsScreen(hospitalId: hospital.id),
-      ),
-    );
-    _loadData();
-  }
-
-  void _navigateToList({VerificationStatus? status}) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => AdminHospitalListScreen(initialStatus: status),
       ),
     );
     _loadData();
@@ -68,9 +130,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           : AppBar(
               backgroundColor: AppColors.background,
               elevation: 0,
-              title: const Text(
-                'AYUSH Admin Portal',
-                style: TextStyle(color: AppColors.navyPrimary, fontWeight: FontWeight.w800, fontSize: 18.0),
+              title: Text(
+                _getSectionTitle(_currentSection),
+                style: const TextStyle(
+                  color: AppColors.navyPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18.0,
+                ),
               ),
               actions: [
                 IconButton(
@@ -79,236 +145,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ],
             ),
-      drawer: isDesktop ? null : _buildMobileDrawer(),
+      drawer: isDesktop
+          ? null
+          : AdminMobileDrawer(
+              currentSection: _currentSection,
+              onSectionSelected: _onSectionSelected,
+              pendingCount: _stats['pending'],
+            ),
       body: isDesktop
           ? Row(
               children: [
-                _buildDesktopSidebar(),
-                Expanded(child: _buildMainContent(isDesktop: true)),
+                // Persistent Left Sidebar
+                AdminSidebar(
+                  currentSection: _currentSection,
+                  onSectionSelected: _onSectionSelected,
+                  pendingCount: _stats['pending'],
+                ),
+                // Main Content Area
+                Expanded(
+                  child: _buildMainContent(isDesktop: true),
+                ),
               ],
             )
           : _buildMainContent(isDesktop: false),
     );
   }
 
-  Widget _buildDesktopSidebar() {
-    return Container(
-      width: 260.0,
-      decoration: const BoxDecoration(
-        color: AppColors.navyPrimary,
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 28.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    color: AppColors.saffronPrimary,
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: const Icon(Icons.verified_user_rounded, color: AppColors.background, size: 24.0),
-                ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'MEDIKIOSK',
-                        style: TextStyle(color: AppColors.background, fontWeight: FontWeight.w900, fontSize: 16.0, letterSpacing: 1.0),
-                      ),
-                      Text(
-                        'Admin Central Portal',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 11.0),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(color: Color(0xFF1E3A8A), height: 1.0),
-          const SizedBox(height: 16.0),
-          _buildSidebarItem(
-            icon: Icons.dashboard_rounded,
-            title: 'Overview Dashboard',
-            isSelected: true,
-            onTap: () {},
-          ),
-          _buildSidebarItem(
-            icon: Icons.hourglass_top_rounded,
-            title: 'Pending Reviews',
-            badgeCount: _stats['pending'],
-            badgeColor: AppColors.saffronPrimary,
-            onTap: () => _navigateToList(status: VerificationStatus.pending),
-          ),
-          _buildSidebarItem(
-            icon: Icons.local_hospital_rounded,
-            title: 'Hospital Directory',
-            onTap: () => _navigateToList(),
-          ),
-          _buildSidebarItem(
-            icon: Icons.verified_rounded,
-            title: 'Verified Facilities',
-            onTap: () => _navigateToList(status: VerificationStatus.verified),
-          ),
-          _buildSidebarItem(
-            icon: Icons.cancel_outlined,
-            title: 'Rejected Applications',
-            onTap: () => _navigateToList(status: VerificationStatus.rejected),
-          ),
-          const Divider(color: Color(0xFF1E3A8A), height: 24.0),
-          _buildSidebarItem(
-            icon: Icons.domain_rounded,
-            title: 'Hospital Portal',
-            onTap: () {
-              Navigator.of(context).pushNamedAndRemoveUntil('/register', (route) => false);
-            },
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            margin: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFF040D1A),
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: AppColors.saffronLight,
-                  child: Icon(Icons.person_rounded, color: AppColors.saffronDark),
-                ),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Verification Officer',
-                        style: TextStyle(color: AppColors.background, fontSize: 12.0, fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Ministry of Ayush',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 10.0),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSidebarItem({
-    required IconData icon,
-    required String title,
-    bool isSelected = false,
-    int? badgeCount,
-    Color? badgeColor,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-      child: Material(
-        color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10.0),
-        child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-          leading: Icon(icon, color: isSelected ? AppColors.saffronPrimary : AppColors.textMuted, size: 20.0),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: isSelected ? AppColors.background : const Color(0xFFCBD5E1),
-              fontSize: 13.0,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-          trailing: (badgeCount != null && badgeCount > 0)
-              ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                  decoration: BoxDecoration(
-                    color: badgeColor ?? AppColors.navyLight,
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: Text(
-                    badgeCount.toString(),
-                    style: const TextStyle(color: AppColors.background, fontSize: 11.0, fontWeight: FontWeight.bold),
-                  ),
-                )
-              : null,
-          onTap: onTap,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileDrawer() {
-    return Drawer(
-      backgroundColor: AppColors.navyPrimary,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF040D1A)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.verified_user_rounded, color: AppColors.saffronPrimary, size: 36.0),
-                SizedBox(height: 10.0),
-                Text('MediKiosk Admin Portal', style: TextStyle(color: AppColors.background, fontSize: 16.0, fontWeight: FontWeight.bold)),
-                Text('Ministry of Ayush', style: TextStyle(color: AppColors.textMuted, fontSize: 12.0)),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard_rounded, color: AppColors.saffronPrimary),
-            title: const Text('Dashboard', style: TextStyle(color: AppColors.background)),
-            onTap: () => Navigator.of(context).pop(),
-          ),
-          ListTile(
-            leading: const Icon(Icons.hourglass_top_rounded, color: AppColors.saffronDark),
-            title: const Text('Pending Reviews', style: TextStyle(color: AppColors.background)),
-            trailing: _stats['pending']! > 0
-                ? CircleAvatar(
-                    radius: 12,
-                    backgroundColor: AppColors.saffronPrimary,
-                    child: Text(_stats['pending'].toString(), style: const TextStyle(color: Colors.white, fontSize: 11)),
-                  )
-                : null,
-            onTap: () {
-              Navigator.of(context).pop();
-              _navigateToList(status: VerificationStatus.pending);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.local_hospital_rounded, color: Color(0xFFCBD5E1)),
-            title: const Text('All Hospitals', style: TextStyle(color: AppColors.background)),
-            onTap: () {
-              Navigator.of(context).pop();
-              _navigateToList();
-            },
-          ),
-          const Divider(color: Color(0xFF1E3A8A)),
-          ListTile(
-            leading: const Icon(Icons.domain_rounded, color: AppColors.saffronPrimary),
-            title: const Text('Hospital Portal', style: TextStyle(color: AppColors.background)),
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamedAndRemoveUntil('/register', (route) => false);
-            },
-          ),
-        ],
-      ),
-    );
+  String _getSectionTitle(AdminSection section) {
+    switch (section) {
+      case AdminSection.overview:
+        return 'AYUSH Admin Portal';
+      case AdminSection.pending:
+        return 'Pending Reviews';
+      case AdminSection.directory:
+        return 'Hospital Directory & Reviews';
+      case AdminSection.verified:
+        return 'Verified Facilities';
+      case AdminSection.rejected:
+        return 'Rejected Applications';
+    }
   }
 
   Widget _buildMainContent({required bool isDesktop}) {
@@ -316,6 +191,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (_currentSection == AdminSection.overview) {
+      return _buildOverviewSection(isDesktop: isDesktop);
+    } else {
+      return _buildDirectorySection(isDesktop: isDesktop);
+    }
+  }
+
+  // ── 1. OVERVIEW DASHBOARD CONTENT ──────────────────────────────────────────
+
+  Widget _buildOverviewSection({required bool isDesktop}) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(isDesktop ? 32.0 : 16.0),
       child: Column(
@@ -347,7 +232,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 const SizedBox(width: 16.0),
                 ElevatedButton.icon(
-                  onPressed: () => _navigateToList(status: VerificationStatus.pending),
+                  onPressed: () => _onSectionSelected(AdminSection.pending),
                   icon: const Icon(Icons.rate_review_rounded, size: 18.0),
                   label: const Text('Review Pending Hospitals'),
                   style: ElevatedButton.styleFrom(
@@ -362,13 +247,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(height: 24.0),
           ],
 
-          // 1. Statistics Cards Grid
+          // Statistics Cards Grid
           _buildStatsGrid(isDesktop),
 
           const SizedBox(height: 24.0),
 
-          // 2. Pending Action Banner
-          if (_stats['pending']! > 0) ...[
+          // Pending Action Banner
+          if ((_stats['pending'] ?? 0) > 0) ...[
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
@@ -385,7 +270,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             color: AppColors.saffronPrimary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.notification_important_rounded, color: AppColors.background, size: 24.0),
+                          child: const Icon(Icons.notification_important_rounded,
+                              color: AppColors.background, size: 24.0),
                         ),
                         const SizedBox(width: 16.0),
                         Expanded(
@@ -410,7 +296,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                         const SizedBox(width: 12.0),
                         ElevatedButton(
-                          onPressed: () => _navigateToList(status: VerificationStatus.pending),
+                          onPressed: () => _onSectionSelected(AdminSection.pending),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.saffronDark,
                             foregroundColor: AppColors.background,
@@ -431,7 +317,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 color: AppColors.saffronPrimary,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.notification_important_rounded, color: AppColors.background, size: 18.0),
+                              child: const Icon(Icons.notification_important_rounded,
+                                  color: AppColors.background, size: 18.0),
                             ),
                             const SizedBox(width: 10.0),
                             Expanded(
@@ -455,7 +342,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () => _navigateToList(status: VerificationStatus.pending),
+                            onPressed: () => _onSectionSelected(AdminSection.pending),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.saffronDark,
                               foregroundColor: AppColors.background,
@@ -470,7 +357,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(height: 28.0),
           ],
 
-          // 3. Recent Registrations Section
+          // Recent Registrations Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -485,7 +372,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => _navigateToList(),
+                onPressed: () => _onSectionSelected(AdminSection.directory),
                 child: const Text('View All →'),
               ),
             ],
@@ -519,7 +406,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         icon: Icons.business_rounded,
         color: AppColors.navyPrimary,
         backgroundColor: AppColors.surface,
-        onTap: () => _navigateToList(),
+        isSelected: _currentSection == AdminSection.directory,
+        onTap: () => _onSectionSelected(AdminSection.directory),
       ),
       AdminStatCard(
         title: 'Pending Review',
@@ -527,7 +415,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         icon: Icons.hourglass_top_rounded,
         color: AppColors.saffronPrimary,
         backgroundColor: AppColors.saffronLight,
-        onTap: () => _navigateToList(status: VerificationStatus.pending),
+        isSelected: _currentSection == AdminSection.pending,
+        onTap: () => _onSectionSelected(AdminSection.pending),
       ),
       AdminStatCard(
         title: 'Under Review',
@@ -535,7 +424,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         icon: Icons.policy_rounded,
         color: AppColors.navyLight,
         backgroundColor: const Color(0xFFEFF6FF),
-        onTap: () => _navigateToList(status: VerificationStatus.under_review),
+        onTap: () => _onSectionSelected(AdminSection.directory),
       ),
       AdminStatCard(
         title: 'Verified Active',
@@ -543,7 +432,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         icon: Icons.verified_user_rounded,
         color: AppColors.greenSuccess,
         backgroundColor: AppColors.greenLight,
-        onTap: () => _navigateToList(status: VerificationStatus.verified),
+        isSelected: _currentSection == AdminSection.verified,
+        onTap: () => _onSectionSelected(AdminSection.verified),
       ),
       AdminStatCard(
         title: 'Rejected',
@@ -551,7 +441,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         icon: Icons.cancel_outlined,
         color: const Color(0xFFDC2626),
         backgroundColor: const Color(0xFFFEF2F2),
-        onTap: () => _navigateToList(status: VerificationStatus.rejected),
+        isSelected: _currentSection == AdminSection.rejected,
+        onTap: () => _onSectionSelected(AdminSection.rejected),
       ),
     ];
 
@@ -581,5 +472,149 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: cards,
       );
     }
+  }
+
+  // ── 2. DIRECTORY & FILTERED SECTION CONTENT ─────────────────────────────────
+
+  Widget _buildDirectorySection({required bool isDesktop}) {
+    final statusFilter = _getStatusForSection(_currentSection);
+
+    return Column(
+      children: [
+        // Directory Header Bar (for Desktop)
+        if (isDesktop)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            color: AppColors.background,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _getSectionTitle(_currentSection),
+                      style: const TextStyle(
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.navyPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4.0),
+                    const Text(
+                      'Browse and manage registered AYUSH healthcare facilities across India',
+                      style: TextStyle(fontSize: 13.0, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: AppColors.navyPrimary),
+                  onPressed: _loadData,
+                  tooltip: 'Refresh List',
+                ),
+              ],
+            ),
+          ),
+
+        // Filter & Search Controls Header
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 24.0 : 20.0,
+            vertical: 16.0,
+          ),
+          color: AppColors.background,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Search Input Field
+              TextField(
+                controller: _searchController,
+                onChanged: (val) {
+                  if (val.isEmpty) _loadData();
+                },
+                onSubmitted: (_) => _loadData(),
+                decoration: InputDecoration(
+                  hintText:
+                      'Search by hospital name, application ID, registration no, HFR ID, state...',
+                  hintStyle:
+                      const TextStyle(fontSize: 13.0, color: AppColors.textMuted),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.saffronPrimary),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18.0),
+                          onPressed: () {
+                            _searchController.clear();
+                            _loadData();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 12.0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12.0),
+
+              // Status Filter Pill Chips
+              HospitalStatusFilterBar(
+                selectedStatus: statusFilter,
+                onStatusSelected: _onStatusFilterChanged,
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(height: 1.0, color: AppColors.surfaceBorder),
+
+        // Main Hospital Table / List
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(isDesktop ? 24.0 : 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${_filteredHospitals.length} Registrations',
+                      style: const TextStyle(
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12.0),
+                isDesktop
+                    ? HospitalDataTable(
+                        hospitals: _filteredHospitals,
+                        onHospitalTap: _navigateToDetails,
+                      )
+                    : Column(
+                        children: _filteredHospitals
+                            .map((h) => HospitalMobileCard(
+                                  hospital: h,
+                                  onTap: () => _navigateToDetails(h),
+                                ))
+                            .toList(),
+                      ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
