@@ -22,6 +22,7 @@ class RegistrationSubmittedScreen extends StatelessWidget {
     String? applicationId,
   }) : hospital = hospital ??
             AyushHospital(
+              id: '00000000-0000-0000-0000-000000000000',
               applicationId: applicationId ?? 'AYUSH-HOSP-2026-89412',
               hospitalName: hospitalName ?? 'National Institute of Ayurveda Hospital',
               regNumber: 'AYUSH-RJ-2024-0091',

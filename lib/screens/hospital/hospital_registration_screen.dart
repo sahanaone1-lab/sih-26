@@ -106,6 +106,7 @@ class _HospitalRegistrationScreenState
 
       try {
         final newHospital = AyushHospital(
+          id: '00000000-0000-0000-0000-000000000000',
           applicationId:
               'AYUSH-HOSP-${DateTime.now().year}-${(10000 + DateTime.now().millisecondsSinceEpoch % 90000)}',
           hospitalName: _hospitalNameController.text.trim(),

@@ -16,6 +16,13 @@ router.post('/auth/register', doctorController.register);
  */
 router.post('/auth/login', doctorController.login);
 
+/**
+ * @route   GET /api/doctor/hospital/:hospitalId
+ * @desc    Get all doctors for a specific hospital
+ * @access  Public
+ */
+router.get('/hospital/:hospitalId', doctorController.getDoctorsByHospital);
+
 const upload = require('../middleware/upload.middleware');
 const auditLog = require('../middleware/audit.middleware');
 

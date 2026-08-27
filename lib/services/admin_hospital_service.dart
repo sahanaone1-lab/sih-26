@@ -658,6 +658,7 @@ class AdminHospitalService {
     final primaryOfficial = match.authorizedOfficials.isNotEmpty ? match.authorizedOfficials.first : null;
 
     return AyushHospital(
+      id: match.id,
       applicationId: match.applicationId,
       hospitalName: match.facilityName,
       regNumber: match.registrationNumber,
@@ -708,6 +709,7 @@ class AdminHospitalService {
     } catch (_) {}
 
     return AyushHospital(
+      id: map['id'] ?? '00000000-0000-0000-0000-000000000000',
       applicationId: map['application_id'] ?? '',
       hospitalName: map['facility_name'] ?? '',
       regNumber: map['registration_number'] ?? '',

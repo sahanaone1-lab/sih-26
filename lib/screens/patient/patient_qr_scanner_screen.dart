@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
 import '../../models/patient_model.dart';
+import '../../config/api_config.dart';
 
 /// Patient QR Scanner Screen.
 ///
@@ -259,7 +261,7 @@ class _PatientQrScannerScreenState extends State<PatientQrScannerScreen> {
   }
 
   /// Handles manual fallback code entry.
-  void _handleManualCode() {
+  void _handleManualCode() async {
     final code = _manualCodeController.text.trim().toUpperCase();
     if (code.isEmpty || code.length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,33 +270,27 @@ class _PatientQrScannerScreenState extends State<PatientQrScannerScreen> {
       return;
     }
 
-    // Extract doctor info from the code prefix for the prototype demo
-    // Code format: [hospital 2][doctor 2][session 3], e.g. AYPR327
-    String doctorId = 'd1';
-    String doctorName = 'Priya Singh';
-    String specialization = 'MBBS, MD (Pediatrics)';
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
 
-    final doctorPrefix = code.length >= 4 ? code.substring(2, 4) : '';
-    if (doctorPrefix == 'VI') {
-      doctorId = 'd2';
-      doctorName = 'Vikram Sharma';
-      specialization = 'MBBS, MD (General Medicine)';
-    } else if (doctorPrefix == 'SN') {
-      doctorId = 'd3';
-      doctorName = 'Sneha Rao';
-      specialization = 'BDS, MDS (Orthodontics)';
-    } else if (doctorPrefix == 'AR') {
-      doctorId = 'd4';
-      doctorName = 'Arjun Kapoor';
-      specialization = 'BAMS, MD (Ayurveda)';
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/upload.html?code=$code');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch browser';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
-
-    _showApprovalDialog(
-      doctorId: doctorId,
-      hospitalName: 'AYUSH Multi-Specialty Hospital',
-      doctorName: doctorName,
-      specialization: specialization,
-    );
   }
 
   @override

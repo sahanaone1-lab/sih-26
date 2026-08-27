@@ -5,6 +5,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../app/theme.dart';
 import '../../models/doctor_model.dart';
 import '../auth/doctor_login_screen.dart';
+import '../../services/doctor_service.dart';
+import '../../services/consultation_service.dart';
+import '../../config/api_config.dart';
 
 /// Hospital Kiosk Portal Screen.
 ///
@@ -15,7 +18,9 @@ import '../auth/doctor_login_screen.dart';
 /// KEY RULE: Only this screen generates QR codes. The patient app NEVER
 /// generates QR codes — the patient only scans them.
 class HospitalKioskScreen extends StatefulWidget {
-  const HospitalKioskScreen({super.key});
+  final String hospitalId;
+
+  const HospitalKioskScreen({super.key, required this.hospitalId});
 
   @override
   State<HospitalKioskScreen> createState() => _HospitalKioskScreenState();
@@ -24,57 +29,36 @@ class HospitalKioskScreen extends StatefulWidget {
 class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  
+  List<DoctorModel> _specialists = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  // Mock specialists data
-  final List<DoctorModel> _specialists = [
-    DoctorModel(
-      id: 'd1',
-      doctorId: 'DOC-123',
-      name: 'Priya Singh',
-      specialization: 'MBBS, MD (Pediatrics)',
-      hospitalId: 'HOSP-001',
-      email: 'priya@ayush.in',
-      phone: '9876543210',
-      status: 'ACTIVE',
-    ),
-    DoctorModel(
-      id: 'd2',
-      doctorId: 'DOC-124',
-      name: 'Vikram Sharma',
-      specialization: 'MBBS, MD (General Medicine)',
-      hospitalId: 'HOSP-001',
-      email: 'vikram@ayush.in',
-      phone: '9876543211',
-      status: 'ACTIVE',
-    ),
-    DoctorModel(
-      id: 'd3',
-      doctorId: 'DOC-125',
-      name: 'Sneha Rao',
-      specialization: 'BDS, MDS (Orthodontics)',
-      hospitalId: 'HOSP-001',
-      email: 'sneha@ayush.in',
-      phone: '9876543212',
-      status: 'ACTIVE',
-    ),
-    DoctorModel(
-      id: 'd4',
-      doctorId: 'DOC-126',
-      name: 'Arjun Kapoor',
-      specialization: 'BAMS, MD (Ayurveda)',
-      hospitalId: 'HOSP-001',
-      email: 'arjun@ayush.in',
-      phone: '9876543213',
-      status: 'ACTIVE',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctors();
+  }
 
-  final Map<String, String> _departmentLabels = {
-    'd1': 'Child Health Specialist',
-    'd2': 'Internal Health Specialist',
-    'd3': 'Dental Care Specialist',
-    'd4': 'Holistic Wellness Expert',
-  };
+  Future<void> _fetchDoctors() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final doctors = await DoctorService().getDoctorsByHospital(widget.hospitalId);
+      setState(() {
+        _specialists = doctors;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -95,22 +79,8 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
   }
 
   void _showDoctorQrDialog(DoctorModel doctor) {
-    final String fallbackCode = _generateFallbackCode(doctor);
-    final int sessionExpiry = DateTime.now()
-        .add(const Duration(minutes: 90))
-        .millisecondsSinceEpoch;
-
-    final Map<String, dynamic> qrPayload = {
-      'hospitalId': doctor.hospitalId,
-      'hospitalName': 'AYUSH Multi-Specialty Hospital',
-      'doctorId': doctor.id,
-      'doctorName': doctor.name,
-      'specialization': doctor.specialization,
-      'fallbackCode': fallbackCode,
-      'sessionExpiry': sessionExpiry,
-      'type': 'doctor_qr_session',
-    };
-    final String qrJson = jsonEncode(qrPayload);
+    final consultationService = ConsultationService();
+    final sessionFuture = consultationService.startSession(doctor.hospitalId, doctor.id);
 
     showDialog(
       context: context,
@@ -172,98 +142,132 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // QR Code
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.surfaceBorder, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: QrImageView(
-                      data: qrJson,
-                      version: QrVersions.auto,
-                      size: 220.0,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: AppColors.navyPrimary,
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.circle,
-                        color: AppColors.navyPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Fallback Code
-                  const Text(
-                    'Fallback Code:',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.saffronLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.saffronPrimary.withOpacity(0.4)),
-                    ),
-                    child: Text(
-                      fallbackCode,
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.saffronDark,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'If the camera is unavailable, enter this code\nmanually in the patient app.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Session expiry indicator
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.greenLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.greenSuccess.withOpacity(0.3)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.timer, color: AppColors.greenSuccess, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          'Session expires in: 01:30:00',
-                          style: TextStyle(
-                            color: AppColors.greenSuccess,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                  // QR Code and Details from Future
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: sessionFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.all(40.0),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppColors.navyPrimary),
                           ),
-                        ),
-                      ],
-                    ),
+                        );
+                      }
+                      
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Text(
+                            'Failed to start session: \${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }
+
+                      final session = snapshot.data!;
+                      final token = session['qr_token'];
+                      final fallbackCode = session['fallback_code'] ?? _generateFallbackCode(doctor);
+                      final uploadUrl = '${ApiConfig.patientUploadWebPortal}?token=$token';
+
+                      return Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.surfaceBorder, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: QrImageView(
+                              data: uploadUrl,
+                              version: QrVersions.auto,
+                              size: 220.0,
+                              eyeStyle: const QrEyeStyle(
+                                eyeShape: QrEyeShape.square,
+                                color: AppColors.navyPrimary,
+                              ),
+                              dataModuleStyle: const QrDataModuleStyle(
+                                dataModuleShape: QrDataModuleShape.circle,
+                                color: AppColors.navyPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Fallback Code
+                          const Text(
+                            'Fallback Code:',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.saffronLight,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.saffronPrimary.withOpacity(0.4)),
+                            ),
+                            child: Text(
+                              fallbackCode,
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.saffronDark,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'If the camera is unavailable, go to the upload portal\nand enter this code.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Session expiry indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.greenLight,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.greenSuccess.withOpacity(0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.timer, color: AppColors.greenSuccess, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Session expires in: 90:00',
+                                  style: TextStyle(
+                                    color: AppColors.greenSuccess,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
@@ -297,8 +301,7 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
     final q = _searchQuery.toLowerCase();
     return _specialists.where((d) {
       return d.name.toLowerCase().contains(q) ||
-          d.specialization.toLowerCase().contains(q) ||
-          (_departmentLabels[d.id] ?? '').toLowerCase().contains(q);
+          d.specialization.toLowerCase().contains(q);
     }).toList();
   }
 
@@ -496,6 +499,21 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  if (_isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.saffronPrimary)),
+                    );
+                  }
+                  if (_errorMessage != null) {
+                    return Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Text('Error: $_errorMessage', style: const TextStyle(color: Colors.red)),
+                      ),
+                    );
+                  }
+
                   final cardWidth = (constraints.maxWidth - 16) / 2;
                   final doctors = _filteredSpecialists;
                   if (doctors.isEmpty) {
@@ -527,7 +545,6 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
   }
 
   Widget _buildDoctorCard(DoctorModel doctor) {
-    final subtitle = _departmentLabels[doctor.id] ?? '';
     return InkWell(
       onTap: () => _showDoctorQrDialog(doctor),
       borderRadius: BorderRadius.circular(14),
@@ -578,19 +595,6 @@ class _HospitalKioskScreenState extends State<HospitalKioskScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.saffronDark,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ],
               ),
             ),

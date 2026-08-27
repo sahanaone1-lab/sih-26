@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Document Upload - MediKiosk</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; }
+        h1 { font-size: 24px; color: #1a365d; margin-bottom: 5px; text-align: center; }
+        p.subtitle { color: #718096; text-align: center; margin-bottom: 25px; font-size: 14px; }
+        .info-box { background-color: #ebf8ff; border-left: 4px solid #3182ce; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .info-box p { margin: 5px 0; font-size: 14px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #4a5568; }
+        input[type="file"] { display: block; width: 100%; padding: 10px; border: 2px dashed #cbd5e0; border-radius: 8px; background-color: #f8fafc; cursor: pointer; }
+        button { width: 100%; padding: 14px; background-color: #ed8936; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #dd6b20; }
+        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
+        .status { margin-top: 15px; padding: 15px; border-radius: 8px; text-align: center; display: none; font-weight: 600; }
+        .status.success { background-color: #c6f6d5; color: #22543d; display: block; }
+        .status.error { background-color: #fed7d7; color: #822727; display: block; }
+        .status.info { background-color: #e2e8f0; color: #4a5568; display: block; }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-right: 10px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Secure Document Upload</h1>
+        <p class="subtitle">MediKiosk Consultation Session</p>
+
+        <div id="fallbackCodeSection" style="display: none; margin-bottom: 20px;">
+            <p>Please enter the fallback code displayed on the kiosk screen:</p>
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <input type="text" id="fallbackCodeInput" placeholder="e.g. AYPR327" style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px; text-transform: uppercase;">
+                <button id="validateCodeBtn" style="width: auto; padding: 10px 20px;">Verify</button>
+            </div>
+            <div id="codeError" class="status error"></div>
+        </div>
+
+        <div id="sessionInfo" class="info-box" style="display: none;">
+            <p><strong>Doctor:</strong> <span id="doctorName">Loading...</span></p>
+            <p><strong>Hospital:</strong> <span id="hospitalName">Loading...</span></p>
+            <p style="color: #c53030; font-weight: bold; font-size: 12px; margin-top: 10px;">Session ends at <span id="expiresAt"></span></p>
+        </div>
+
+        <div id="initialStatus" class="status info">Validating secure session...</div>
+
+        <form id="uploadForm" style="display: none;">
+            <div class="form-group">
+                <label for="document">Select Medical Document (PDF, JPG, PNG)</label>
+                <input type="file" id="document" name="document" accept="application/pdf,image/jpeg,image/png,image/jpg" required>
+                <p style="font-size: 12px; color: #718096; margin-top: 5px;">Max file size: 10 MB</p>
+            </div>
+            <button type="submit" id="submitBtn">Upload Document</button>
+        </form>
+
+        <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let token = urlParams.get('token');
+        let codeParam = urlParams.get('code');
+        
+        const initialStatus = document.getElementById('initialStatus');
+        const uploadForm = document.getElementById('uploadForm');
+        const sessionInfo = document.getElementById('sessionInfo');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadStatus = document.getElementById('uploadStatus');
+        
+        const fallbackCodeSection = document.getElementById('fallbackCodeSection');
+        const fallbackCodeInput = document.getElementById('fallbackCodeInput');
+        const validateCodeBtn = document.getElementById('validateCodeBtn');
+        const codeError = document.getElementById('codeError');
+
+        if (codeParam) {
+            fallbackCodeInput.value = codeParam;
+        }
+
+        function setupSessionUI(session) {
+            document.getElementById('doctorName').innerText = `Dr. ${session.doctors.first_name} ${session.doctors.last_name}`;
+            document.getElementById('hospitalName').innerText = session.hospitals.name;
+            
+            const expiry = new Date(session.expires_at).toLocaleTimeString();
+            document.getElementById('expiresAt').innerText = expiry;
+
+            initialStatus.style.display = 'none';
+            fallbackCodeSection.style.display = 'none';
+            sessionInfo.style.display = 'block';
+            uploadForm.style.display = 'block';
+        }
+
+        if (!token) {
+            initialStatus.style.display = 'none';
+            fallbackCodeSection.style.display = 'block';
+            if (codeParam) {
+                // Auto trigger verification if code passed in URL
+                setTimeout(() => validateCodeBtn.click(), 100);
+            }
+        } else {
+            // Validate Token
+            fetch(`/api/consultations/validate?token=${token}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setupSessionUI(data.data);
+                    } else {
+                        throw new Error(data.message || 'Invalid session');
+                    }
+                })
+                .catch(err => {
+                    initialStatus.className = 'status error';
+                    initialStatus.innerText = `Session Error: ${err.message}. The consultation may have ended.`;
+                    fallbackCodeSection.style.display = 'block';
+                });
+        }
+
+        validateCodeBtn.addEventListener('click', () => {
+            const code = fallbackCodeInput.value.trim();
+            if (!code) return;
+
+            validateCodeBtn.disabled = true;
+            validateCodeBtn.innerText = '...';
+            codeError.style.display = 'none';
+
+            fetch(`/api/consultations/validate-fallback?code=${code}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        token = data.data.qr_token; // Save token for uploads
+                        setupSessionUI(data.data);
+                    } else {
+                        throw new Error(data.message || 'Invalid fallback code');
+                    }
+                })
+                .catch(err => {
+                    codeError.style.display = 'block';
+                    codeError.innerText = err.message;
+                })
+                .finally(() => {
+                    validateCodeBtn.disabled = false;
+                    validateCodeBtn.innerText = 'Verify';
+                });
+        });
+
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('document');
+            if (fileInput.files.length === 0) return;
+
+            const file = fileInput.files[0];
+            if (file.size > 10 * 1024 * 1024) {
+                uploadStatus.className = 'status error';
+                uploadStatus.innerText = 'File is too large. Maximum size is 10MB.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('token', token);
+            formData.append('document', file);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+            uploadStatus.style.display = 'none';
+
+            fetch('/api/consultations/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    uploadStatus.className = 'status success';
+                    uploadStatus.innerText = 'Document uploaded successfully! The doctor can now view it.';
+                    uploadForm.reset();
+                } else {
+                    throw new Error(data.message || 'Upload failed');
+                }
+            })
+            .catch(err => {
+                uploadStatus.className = 'status error';
+                uploadStatus.innerText = `Error: ${err.message}`;
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Upload Another Document';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -439,39 +439,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12.0),
 
-                    // Button: Launch Hospital Kiosk
-                    SizedBox(
-                      height: 50.0,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const HospitalKioskScreen(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.monitor,
-                          size: 20.0,
-                        ),
-                        label: const Text(
-                          'Launch Hospital Kiosk',
-                          style: TextStyle(
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.navyPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 36.0),
 
                     // Footer

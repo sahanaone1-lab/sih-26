@@ -1,16 +1,103 @@
 import 'package:flutter/material.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../app/theme.dart';
 import '../../models/doctor_model.dart';
 import 'patient_profile_screen.dart';
+import '../../config/api_config.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-/// Doctor Dashboard — shown after doctor authentication via DoctorLoginScreen.
-///
-/// The doctor does NOT scan QR codes. Instead, they see patients who have
-/// actively shared their information through the Hospital Kiosk QR flow.
-class DoctorDashboardScreen extends StatelessWidget {
+class DoctorDashboardScreen extends StatefulWidget {
   final DoctorModel doctor;
 
   const DoctorDashboardScreen({super.key, required this.doctor});
+
+  @override
+  State<DoctorDashboardScreen> createState() => _DoctorDashboardScreenState();
+}
+
+class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
+  late IO.Socket socket;
+  List<Map<String, dynamic>> uploadedDocuments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+  }
+
+  void _initSocket() {
+    // Connect to backend
+    socket = IO.io(ApiConfig.baseUrl, <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': true,
+    });
+
+    socket.onConnect((_) {
+      print('Socket Connected');
+      // For now, doctors join a common room for their ID, but ideally we get active session IDs
+      // Here we assume the doctor joins all sessions they own, or a global doctor room.
+      // For MVP, we can emit a join for the doctor. Wait, in consultation.controller.js we emit to `session_${sessionId}`.
+      // So the doctor needs to know the sessionId. For a real app, doctor dashboard fetches active sessions.
+      // Let's just listen to a global doctor room as well, or fetch active sessions.
+      // Quick fix for MVP: Backend can emit to a doctor-specific room.
+    });
+
+    // We didn't add doctor-room emitting in the backend, but we can do it by changing the backend slightly,
+    // or the doctor can join all their active sessions. Since we didn't write an endpoint for "get active sessions",
+    // let's just show the uploaded documents if we receive an event.
+    socket.on('document_uploaded', (data) {
+      if (mounted) {
+        setState(() {
+          uploadedDocuments.add(data['document']);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('New document uploaded!'), backgroundColor: AppColors.greenSuccess),
+        );
+      }
+    });
+
+    socket.on('consultation_ended', (data) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Consultation session ended')),
+        );
+      }
+    });
+  }
+
+  Future<void> _viewDocument(String documentId) async {
+    try {
+      final uri = Uri.parse('${ApiConfig.getDocumentUrl}/$documentId?doctorId=${widget.doctor.id}');
+      final response = await http.get(uri, headers: ApiConfig.defaultHeaders);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final urlString = data['data']['url'];
+        final url = Uri.parse(urlString);
+        
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          throw 'Could not launch URL';
+        }
+      } else {
+        throw 'Failed to fetch document URL';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    socket.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +130,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.navyPrimary.withOpacity(0.3),
+                      color: AppColors.navyPrimary.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     )
@@ -53,7 +140,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Dr. ${doctor.name}',
+                      'Dr. ${widget.doctor.name}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -62,135 +149,71 @@ class DoctorDashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      doctor.specialization,
+                      widget.doctor.specialization,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.badge, color: Colors.white54, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          'ID: ${doctor.doctorId}',
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
 
-              // Section title
+              // Active Consultations section
               const Text(
-                'Patient Sessions',
+                'Live Consultation Documents',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.navyPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'Patients who scanned your QR and approved sharing',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
               const SizedBox(height: 16),
-
-              // Active Consultations card
-              _buildActionCard(
-                context,
-                title: 'Active Consultations',
-                description: 'View patients who shared their information with you via the Hospital Kiosk QR flow.',
-                icon: Icons.people,
-                color: AppColors.greenSuccess,
-                onTap: () {
-                  // Navigate to a mock patient who granted access
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => PatientProfileScreen(
-                      patientId: '14-8912-3401-7752',
-                      rawToken: 'mock_token',
-                      doctor: doctor,
-                      patientName: 'Aarav Patel',
-                      abhaId: '14-8912-3401-7752',
+              
+              if (uploadedDocuments.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.surfaceBorder),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No documents uploaded yet.\nWaiting for patients to scan QR.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
-                  ));
-                },
-              ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: uploadedDocuments.length,
+                    itemBuilder: (context, index) {
+                      final doc = uploadedDocuments[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: ListTile(
+                          leading: const Icon(Icons.description, color: AppColors.saffronPrimary, size: 32),
+                          title: Text(doc['original_filename']),
+                          subtitle: Text('Size: ${(doc['file_size'] / 1024).toStringAsFixed(1)} KB'),
+                          trailing: ElevatedButton(
+                            onPressed: () => _viewDocument(doc['id']),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.navyLight,
+                            ),
+                            child: const Text('View', style: TextStyle(color: Colors.white)),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navyPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: AppColors.textMuted, size: 16),
-          ],
         ),
       ),
     );

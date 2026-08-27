@@ -16,7 +16,8 @@ class ApiConfig {
     }
 
     if (kIsWeb) {
-      return 'http://localhost:$defaultPort';
+      // Using actual machine IP for LAN testing so mobile phones can connect
+      return 'http://192.168.1.3:$defaultPort';
     }
 
     // Mobile platforms
@@ -47,6 +48,16 @@ class ApiConfig {
   static String get hospitalRegister => '$baseUrl/api/hospitals/register';
   static String get hospitalLogin => '$baseUrl/api/hospitals/login';
   static String hospitalStatus(String appId) => '$baseUrl/api/hospitals/status/$appId';
+
+  // Doctor Endpoints
+  static String get doctorRegister => '$baseUrl/api/doctor/auth/register';
+  static String getHospitalDoctors(String hospitalId) => '$baseUrl/api/doctor/hospital/$hospitalId';
+
+  // Consultation Endpoints
+  static String get startConsultation => '$baseUrl/api/consultations/start';
+  static String get endConsultation => '$baseUrl/api/consultations/end';
+  static String get getDocumentUrl => '$baseUrl/api/consultations/documents';
+  static String get patientUploadWebPortal => '$baseUrl/upload.html';
 
   // Request Headers
   static Map<String, String> get defaultHeaders => {

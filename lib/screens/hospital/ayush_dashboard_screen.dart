@@ -4,6 +4,8 @@ import '../../models/hospital_model.dart';
 import '../../widgets/ayush_widgets.dart';
 import '../auth/login_screen.dart';
 import 'hospital_profile_screen.dart';
+import 'hospital_kiosk_screen.dart';
+import 'add_doctor_screen.dart';
 
 /// AYUSH Hospital Dashboard Screen.
 /// 
@@ -392,17 +394,32 @@ class _AyushDashboardScreenState extends State<AyushDashboardScreen> {
               const SizedBox(height: 14.0),
 
               DashboardActionCard(
-                title: 'MediKiosk AI Clinical Intake',
-                description: 'Real-time patient voice & touch intake stream across Hindi, English, and regional languages.',
-                icon: Icons.record_voice_over_rounded,
-                iconColor: AppColors.saffronDark,
-                iconBgColor: AppColors.saffronLight,
+                title: 'Launch Hospital Kiosk',
+                description: 'Open the patient-facing kiosk interface for check-ins and ABDM verifications.',
+                icon: Icons.monitor,
+                iconColor: AppColors.navyPrimary,
+                iconBgColor: AppColors.surface,
                 badgeText: 'LIVE KIOSK',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('MediKiosk Live Patient Intake Feed active.'),
-                      duration: Duration(seconds: 2),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => HospitalKioskScreen(hospitalId: widget.hospital.id),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12.0),
+
+              DashboardActionCard(
+                title: 'Register New Doctor',
+                description: 'Add a new physician or medical staff member to the hospital portal.',
+                icon: Icons.person_add_alt_1_rounded,
+                iconColor: AppColors.saffronDark,
+                iconBgColor: AppColors.saffronLight,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AddDoctorScreen(hospital: widget.hospital),
                     ),
                   );
                 },

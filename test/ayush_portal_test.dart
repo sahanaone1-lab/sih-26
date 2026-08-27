@@ -123,6 +123,7 @@ void main() {
         (WidgetTester tester) async {
       final service = AdminHospitalService();
       final testHospital = AyushHospital(
+        id: '00000000-0000-0000-0000-000000000000',
         applicationId: 'AYUSH-HOSP-2026-TESTSYNC',
         hospitalName: 'Sync Test Ayurveda Hospital',
         regNumber: 'AYUSH-SYNC-2026-001',

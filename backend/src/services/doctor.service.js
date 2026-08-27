@@ -85,6 +85,25 @@ const loginDoctor = async (identifier, password) => {
   return doctor;
 };
 
+const getDoctorsByHospital = async (hospitalId) => {
+  const supabase = getSupabase();
+
+  if (!hospitalId) {
+    const error = new Error('Hospital ID is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const { data: doctors, error } = await supabase
+    .from('doctors')
+    .select('id, first_name, last_name, email, phone, specialization, registration_number, hospital_id')
+    .eq('hospital_id', hospitalId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return doctors || [];
+};
+
 const uploadConsultation = async (doctorId, rawToken, patientId, file, title, notes) => {
   const supabase = getSupabase();
   const sessionService = require('./session.service');
@@ -123,5 +142,6 @@ const uploadConsultation = async (doctorId, rawToken, patientId, file, title, no
 module.exports = {
   registerDoctor,
   loginDoctor,
+  getDoctorsByHospital,
   uploadConsultation,
 };

@@ -22,13 +22,13 @@ class DoctorModel {
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
     return DoctorModel(
       id: json['id'] ?? '',
-      doctorId: json['doctor_id'] ?? '',
-      name: json['name'] ?? '',
+      doctorId: json['registration_number'] ?? json['doctor_id'] ?? '',
+      name: json['name'] ?? '${json['first_name'] ?? ''} ${json['last_name'] ?? ''}'.trim(),
       specialization: json['specialization'] ?? '',
       hospitalId: json['hospital_id'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
-      status: json['status'] ?? 'ACTIVE',
+      status: json['is_active'] == false ? 'INACTIVE' : 'ACTIVE',
     );
   }
 

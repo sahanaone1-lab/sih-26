@@ -63,6 +63,7 @@ enum VerificationStatus {
 
 /// Data model representing an AYUSH Hospital.
 class AyushHospital {
+  final String id;
   final String applicationId;
   final String hospitalName;
   final String regNumber;
@@ -82,6 +83,7 @@ class AyushHospital {
   final String submittedDate;
 
   AyushHospital({
+    required this.id,
     required this.applicationId,
     required this.hospitalName,
     required this.regNumber,
@@ -104,6 +106,7 @@ class AyushHospital {
   /// Factory constructor for mock demo hospital.
   factory AyushHospital.mock({VerificationStatus status = VerificationStatus.verified}) {
     return AyushHospital(
+      id: '00000000-0000-0000-0000-000000000000',
       applicationId: 'AYUSH-HOSP-2026-89412',
       hospitalName: 'National Institute of Ayurveda Hospital',
       regNumber: 'AYUSH-RJ-2024-0091',
