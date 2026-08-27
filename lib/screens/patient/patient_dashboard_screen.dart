@@ -6,6 +6,8 @@ import 'clinical_history_summary_screen.dart';
 import 'medical_history_timeline_screen.dart';
 import 'scan_medical_documents_screen.dart';
 import 'voice_to_text_history_screen.dart';
+import 'patient_qr_scanner_screen.dart';
+
 
 /// Patient Dashboard Screen — shown after successful ABHA + OTP verification.
 ///
@@ -110,25 +112,57 @@ class PatientDashboardScreen extends StatelessWidget {
                           ),
                         ),
                         // Verified badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20.0),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.verified_rounded,
-                                  color: Colors.white, size: 14.0),
-                              SizedBox(width: 4.0),
-                              Text('ABDM Verified',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10.0,
-                                      fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20.0),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.verified_rounded,
+                                      color: Colors.white, size: 14.0),
+                                  SizedBox(width: 4.0),
+                                  Text('ABDM Verified',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10.0,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8.0),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => PatientQrScannerScreen(patient: patient),
+                                ));
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10.0, vertical: 4.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20.0),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.qr_code_scanner_rounded,
+                                        color: AppColors.navyPrimary, size: 14.0),
+                                    SizedBox(width: 4.0),
+                                    Text('Scan QR',
+                                        style: TextStyle(
+                                            color: AppColors.navyPrimary,
+                                            fontSize: 10.0,
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

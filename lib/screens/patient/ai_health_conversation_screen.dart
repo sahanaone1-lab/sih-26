@@ -1,5 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../app/theme.dart';
 import '../../models/clinical_intake_model.dart';
 import '../../models/patient_model.dart';
@@ -32,6 +37,9 @@ class _AiHealthConversationScreenState extends State<AiHealthConversationScreen>
   Timer? _aiTimer;
   Timer? _recordingTimer;
   late AnimationController _pulseController;
+  
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  String? _audioPath;
 
   @override
   void initState() {
@@ -50,6 +58,7 @@ class _AiHealthConversationScreenState extends State<AiHealthConversationScreen>
     _textController.dispose();
     _scrollController.dispose();
     _pulseController.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -78,38 +87,75 @@ class _AiHealthConversationScreenState extends State<AiHealthConversationScreen>
 
     // Simulate AI clinical reasoning latency
     _aiTimer?.cancel();
-    _aiTimer = Timer(const Duration(milliseconds: 900), () {
+    _aiTimer = Timer(const Duration(milliseconds: 100), () async {
       if (!mounted) return;
-      final aiMsg = _service.generateAiResponse(widget.patient, text);
-      setState(() {
-        _messages.add(aiMsg);
-        _isTyping = false;
-      });
-      _scrollToBottom();
+      final aiMsg = await _service.generateAiResponse(widget.patient, text);
+      if (mounted) {
+        setState(() {
+          _messages.add(aiMsg);
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
     });
   }
 
-  void _toggleVoiceRecording() {
+  Future<void> _toggleVoiceRecording() async {
     if (_isRecording) {
-      // Finish recording and convert speech to text
-      _recordingTimer?.cancel();
+      // Stop recording
       _pulseController.stop();
       setState(() => _isRecording = false);
-      const simulatedSpeech =
-          'I have been having chronic knee pain and morning stiffness for 3 weeks.';
-      _sendMessage(simulatedSpeech, isVoice: true);
-    } else {
-      _pulseController.repeat(reverse: true);
-      setState(() {
-        _isRecording = true;
-      });
-      // Simulate live recording countdown
-      _recordingTimer?.cancel();
-      _recordingTimer = Timer(const Duration(milliseconds: 2500), () {
-        if (mounted && _isRecording) {
-          _toggleVoiceRecording();
+      
+      final path = await _audioRecorder.stop();
+      if (path != null) {
+        setState(() => _isTyping = true);
+        
+        try {
+          var request = http.MultipartRequest(
+            'POST', 
+            Uri.parse('http://localhost:8001/api/ai/speech-to-text')
+          );
+          
+          request.fields['language_code'] = 'Unknown';
+          
+          // Add the audio file
+          request.files.add(
+            await http.MultipartFile.fromPath('file', path)
+          );
+          
+          var response = await request.send();
+          if (response.statusCode == 200) {
+            var responseData = await response.stream.bytesToString();
+            var json = jsonDecode(responseData);
+            String transcript = json['transcript'];
+            if (transcript.isNotEmpty) {
+              _sendMessage(transcript, isVoice: true);
+            }
+          } else {
+            print("Failed to transcribe: \${response.statusCode}");
+          }
+        } catch (e) {
+          print("Error calling STT: \$e");
+        } finally {
+          setState(() => _isTyping = false);
         }
-      });
+      }
+    } else {
+      // Start recording
+      if (await _audioRecorder.hasPermission()) {
+        final dir = await getTemporaryDirectory();
+        _audioPath = '\${dir.path}/patient_audio_\${DateTime.now().millisecondsSinceEpoch}.m4a';
+        
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc),
+          path: _audioPath!,
+        );
+        
+        _pulseController.repeat(reverse: true);
+        setState(() {
+          _isRecording = true;
+        });
+      }
     }
   }
 

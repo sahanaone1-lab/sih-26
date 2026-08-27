@@ -129,22 +129,9 @@ const registerHospital = async (registrationData) => {
     }
   }
 
-  // 4.5. Create Supabase Auth User
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: official_email.trim().toLowerCase(),
-    password: password,
-    email_confirm: true,
-    user_metadata: { role: 'hospital' }
-  });
-
-  if (authError) {
-    if (authError.message.includes('already registered')) {
-      const error = new Error('An account with this email already exists in Auth');
-      error.statusCode = 409;
-      throw error;
-    }
-    throw authError;
-  }
+  // 4.5 Hash the password using bcrypt
+  const saltRounds = 10;
+  const passwordHash = await bcrypt.hash(password, saltRounds);
 
   // 5. Insert Hospital Record (Status strictly forced to 'pending')
   const { data: newHospital, error: hospitalInsertError } = await supabase
@@ -164,6 +151,7 @@ const registerHospital = async (registrationData) => {
       ayush_id: ayush_id && ayush_id.trim().length > 0 ? ayush_id.trim() : null,
       hfr_id: sanitizedHfrId,
       verification_status: 'pending', // Strictly backend controlled
+      password_hash: passwordHash,
     })
     .select('id, application_id, verification_status')
     .single();
@@ -224,39 +212,9 @@ const loginHospital = async (identifier, password) => {
     throw error;
   }
 
-  // Determine email to use for Supabase Auth
-  let loginEmail = identifier.trim().toLowerCase();
-  
-  // If identifier is not an email, assume it's a Registration ID or Application ID and look up the email
-  if (!loginEmail.includes('@')) {
-    const { data: lookup, error: lookupError } = await supabase
-      .from('hospitals')
-      .select('official_email')
-      .or(`registration_number.eq.${identifier.trim()},application_id.eq.${identifier.trim()}`)
-      .maybeSingle();
-      
-    if (lookupError) throw lookupError;
-    if (!lookup) {
-      const error = new Error('Invalid credentials');
-      error.statusCode = 401;
-      throw error;
-    }
-    loginEmail = lookup.official_email;
-  }
+  const queryIdentifier = identifier.trim();
 
-  // Verify password using Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: loginEmail,
-    password: password,
-  });
-
-  if (authError) {
-    const error = new Error('Invalid credentials');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  // Fetch hospital details
+  // Fetch hospital details along with password_hash
   const { data: hospital, error: searchError } = await supabase
     .from('hospitals')
     .select(`
@@ -272,12 +230,29 @@ const loginHospital = async (identifier, password) => {
       registration_number, 
       ayush_id, 
       verification_status,
-      created_at
+      created_at,
+      password_hash
     `)
-    .eq('official_email', loginEmail)
-    .single();
+    .or(`official_email.eq.${queryIdentifier.toLowerCase()},registration_number.eq.${queryIdentifier},application_id.eq.${queryIdentifier}`)
+    .maybeSingle();
 
   if (searchError) throw searchError;
+  if (!hospital) {
+    const error = new Error('Invalid credentials');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Verify password using bcrypt
+  const isMatch = await bcrypt.compare(password, hospital.password_hash);
+  if (!isMatch) {
+    const error = new Error('Invalid credentials');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Remove password_hash from the returned object for security
+  delete hospital.password_hash;
 
   // Get primary authorized official
   const { data: officials } = await supabase

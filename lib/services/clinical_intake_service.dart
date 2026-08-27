@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/clinical_intake_model.dart';
 import '../models/patient_model.dart';
 
@@ -15,6 +17,7 @@ class ClinicalIntakeService {
 
   // In-memory store keyed by ABHA ID
   final Map<String, List<ChatMessage>> _chatSessions = {};
+  final Map<String, dynamic> _patientStates = {};
   final Map<String, List<VoiceIntakeRecord>> _voiceRecords = {};
   final Map<String, List<ScannedDocument>> _scannedDocs = {};
 
@@ -73,57 +76,53 @@ class ClinicalIntakeService {
     return userMsg;
   }
 
-  ChatMessage generateAiResponse(PatientModel patient, String userText) {
+  Future<ChatMessage> generateAiResponse(PatientModel patient, String userText) async {
     final lower = userText.toLowerCase();
-    String reply;
+    String reply = "I'm sorry, I couldn't process that. Please try again.";
     List<String>? suggestions;
 
-    if (lower.contains('pain') || lower.contains('knee') || lower.contains('back') || lower.contains('joint')) {
-      reply = 'Thank you for sharing. Could you describe the nature of this pain? '
-          'Is it sharp, dull aching, or burning? Does it worsen in the morning or after physical activity?';
-      suggestions = [
-        'Dull aching pain, severe in the morning',
-        'Sharp throbbing pain with mild swelling',
-        'Worse after climbing stairs or sitting long',
-      ];
-    } else if (lower.contains('acid') || lower.contains('digestion') || lower.contains('stomach') || lower.contains('bloat')) {
-      reply = 'I have noted your digestive discomfort. How long have you experienced this acidity? '
-          'Do you notice a connection to spicy/oily food, stress, or irregular meal times?';
-      suggestions = [
-        'Started 3 weeks ago after spicy meals',
-        'Constant burning sensation in the chest',
-        'Accompanied by sour belching & poor appetite',
-      ];
-    } else if (lower.contains('fever') || lower.contains('cough') || lower.contains('cold') || lower.contains('throat')) {
-      reply = 'Understood. What is the highest recorded temperature? Are you experiencing any chills, '
-          'body aches, or difficulty breathing?';
-      suggestions = [
-        'Fever around 100°F with body fatigue',
-        'Dry cough mostly at night, no breathing issue',
-        'Mild throat irritation and nasal congestion',
-      ];
-    } else if (lower.contains('morning') || lower.contains('severe') || lower.contains('started') || lower.contains('week') || lower.contains('day')) {
-      reply = 'Noted. Are you currently taking any allopathic, ayurvedic, or over-the-counter medications for this? '
-          'Also, please mention any known drug or food allergies.';
-      suggestions = [
-        'Taking Paracetamol occasionally, no allergies',
-        'Taking Ayurvedic Triphala Churna at bedtime',
-        'Allergic to Penicillin and Sulfa drugs',
-        'No active medications or known allergies',
-      ];
-    } else {
-      reply = 'Thank you. I have added this clinical insight to your intake record. '
-          'Is there any family medical history (e.g. diabetes, hypertension, arthritis) '
-          'or previous surgical procedures you would like the doctor to know?';
-      suggestions = [
-        'Father has Type 2 Diabetes and Hypertension',
-        'Underwent appendectomy in 2018',
-        'No major family history or past surgeries',
-      ];
+    final url = Uri.parse('http://localhost:8001/agent/chat');
+    
+    // Get existing state for this patient
+    Map<String, dynamic>? currentState = _patientStates[patient.abhaId];
+
+    try {
+      final Map<String, dynamic> body = {
+        'message': userText,
+      };
+      if (currentState != null) {
+        body['state'] = currentState;
+      }
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        reply = data['response'];
+        
+        // Save the updated state
+        if (data['state'] != null) {
+          _patientStates[patient.abhaId] = data['state'];
+          
+          // Optionally extract quick suggestions if the python agent can provide them
+          // For now, provide basic suggestions to keep the UI flowing
+          if (data['state']['current_section'] == 'chief_complaint') {
+            suggestions = ['I have chest pain', 'I have a fever'];
+          }
+        }
+      } else {
+        print('AI Service Error: \${response.statusCode} - \${response.body}');
+      }
+    } catch (e) {
+      print('Error calling AI Service: \$e');
     }
 
     final aiMsg = ChatMessage(
-      id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'ai_\${DateTime.now().millisecondsSinceEpoch}',
       text: reply,
       isUser: false,
       timestamp: DateTime.now(),

@@ -8,6 +8,8 @@ import '../admin/admin_dashboard_screen.dart';
 import '../hospital/ayush_dashboard_screen.dart';
 import '../hospital/hospital_registration_screen.dart';
 import '../hospital/verification_status_screen.dart';
+import '../hospital/hospital_kiosk_screen.dart';
+import 'doctor_login_screen.dart';
 
 /// Dedicated AYUSH Hospital Login Screen.
 ///
@@ -403,6 +405,67 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.navyPrimary,
                             width: 1.5,
                           ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // Button: Doctor Login
+                    SizedBox(
+                      height: 50.0,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const DoctorLoginScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.medical_services_rounded,
+                          size: 20.0,
+                          color: AppColors.saffronDark,
+                        ),
+                        label: const Text(
+                          'Doctor Login',
+                          style: TextStyle(
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.navyPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12.0),
+
+                    // Button: Launch Hospital Kiosk
+                    SizedBox(
+                      height: 50.0,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const HospitalKioskScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.monitor,
+                          size: 20.0,
+                        ),
+                        label: const Text(
+                          'Launch Hospital Kiosk',
+                          style: TextStyle(
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.navyPrimary,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),
                           ),

@@ -3,6 +3,9 @@ const cors = require('cors');
 const healthRoutes = require('./routes/health.routes');
 const hospitalRoutes = require('./routes/hospital.routes');
 const adminRoutes = require('./routes/admin.routes');
+const patientRoutes = require('./routes/patient.routes');
+const doctorRoutes = require('./routes/doctor.routes');
+const sessionRoutes = require('./routes/session.routes');
 const notFoundHandler = require('./middleware/notFound.middleware');
 const errorHandler = require('./middleware/error.middleware');
 
@@ -23,10 +26,16 @@ app.use(
 );
 app.options('*', cors());
 
+// Serve static files from uploads folder
+app.use('/uploads', express.static('uploads'));
+
 // 3. Application Routes
 app.use('/health', healthRoutes);
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/patient', patientRoutes);
+app.use('/api/doctor', doctorRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 // Temporary test route to verify centralized error-handling middleware
 app.get('/test-error', (req, res, next) => {
